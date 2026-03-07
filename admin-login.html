@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FarmSense AI — Admin Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vesper+Libre:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream: #F5EDD8; --banyan: #1C3A2A; --paddy: #3D7A4F;
+      --paddy-bg: #E8F4ED; --gold: #C8873A;
+      --soil: #1A1209; --muted: #6B5E4E;
+      --border: #DDD4C0; --white: #FFFFFF; --turmeric: #D4A017;
+    }
+    html, body { height: 100%; font-family: 'Noto Sans', sans-serif; background: var(--cream); overflow-x: hidden; }
+
+    .wrap { display: flex; min-height: 100vh; }
+
+    /* Admin Illustration */
+    .illus {
+      flex: 1.3; position: relative; overflow: hidden;
+      background: #112d1b;
+      display: flex; flex-direction: column; justify-content: flex-end; padding: 2.5rem;
+    }
+    .illus svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .illus-caption { position: relative; z-index: 2; border-top: 1px solid rgba(245,237,216,0.15); padding-top: 1.5rem; margin-top: 2rem; }
+    .illus-caption h2 { font-family: 'Vesper Libre', serif; font-size: clamp(1.3rem,2.2vw,2rem); color: var(--cream); line-height: 1.4; margin-bottom: 0.4rem; }
+    .illus-caption p { color: rgba(245,237,216,0.65); font-size: 0.88rem; font-style: italic; }
+    .step-pills { display: flex; gap: 0.6rem; margin-top: 1.2rem; flex-wrap: wrap; }
+    .step-pill { background: rgba(245,237,216,0.08); border: 1px solid rgba(245,237,216,0.15); border-radius: 100px; padding: 0.35rem 0.9rem; color: var(--cream); font-size: 0.78rem; display: flex; align-items: center; gap: 0.4rem; }
+    .step-pill span { color: var(--turmeric); font-weight: 700; }
+
+    .form-panel {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 2.5rem 2rem; background: var(--cream); min-width: 320px; overflow-y: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.3rem; }
+    .brand-icon { width: 42px; height: 42px; background: var(--banyan); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .brand-name { font-family: 'Vesper Libre', serif; font-size: 1.6rem; font-weight: 700; color: var(--banyan); }
+    .brand-name span { color: var(--paddy); }
+    .form-sub { color: var(--muted); font-size: 0.85rem; text-align: center; margin-bottom: 2rem; }
+
+    .portal-badge { background: var(--paddy-bg); color: var(--paddy); padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border: 1px solid #c8e6d0; margin-bottom: 1.5rem; }
+
+    .form-box { width: 100%; max-width: 360px; }
+    .fgroup { margin-bottom: 1.2rem; }
+    .fgroup label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 0.4rem; }
+    .fgroup input { width: 100%; background: var(--white); border: 1.5px solid var(--border); border-radius: 10px; padding: 0.75rem 0.9rem; font-family: 'Noto Sans', sans-serif; font-size: 0.92rem; color: var(--soil); outline: none; transition: border-color 0.2s; }
+    .fgroup input:focus { border-color: var(--paddy); }
+    
+    .btn-login { width: 100%; background: var(--banyan); color: var(--cream); border: none; border-radius: 10px; padding: 0.85rem; font-family: 'Noto Sans', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    .btn-login:hover { background: var(--paddy); box-shadow: 0 6px 20px rgba(28,58,42,0.3); }
+
+    .error-msg { background: #fdecea; border: 1px solid #f5c6c2; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.82rem; color: #9b2b1a; margin-bottom: 1.2rem; display: none; }
+
+    .trust-row { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
+    .trust-badge { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.3rem; }
+
+    .farmer-link { text-align: center; margin-top: 2rem; font-size: 0.78rem; color: var(--muted); padding-top: 1.5rem; border-top: 1px solid var(--border); width: 100%; max-width: 360px; }
+    .farmer-link a { color: var(--banyan); font-weight: 600; text-decoration: none; }
+
+    @media (max-width: 768px) {
+      .wrap { flex-direction: column; }
+      .illus { flex: none; height: 32vh; padding: 1.5rem; }
+      .illus-caption { display: none; }
+      .form-panel { padding: 2rem 1.25rem; min-width: unset; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Left Side: Data Map Room Illustration -->
+  <div class="illus">
+    <svg viewBox="0 0 900 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0B1A12"/>
+          <stop offset="100%" stop-color="#143422"/>
+        </linearGradient>
+        <linearGradient id="screen-glow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(127,201,154,0.15)"/>
+          <stop offset="100%" stop-color="rgba(127,201,154,0)"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="6" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      
+      <!-- Background Wall -->
+      <rect width="900" height="700" fill="url(#wall)"/>
+      
+      <!-- Grid lines on wall -->
+      <g stroke="rgba(255,255,255,0.03)" stroke-width="1">
+        <line x1="0" y1="100" x2="900" y2="100"/>
+        <line x1="0" y1="200" x2="900" y2="200"/>
+        <line x1="0" y1="300" x2="900" y2="300"/>
+        <line x1="0" y1="400" x2="900" y2="400"/>
+        <line x1="0" y1="500" x2="900" y2="500"/>
+        <line x1="300" y1="0" x2="300" y2="700"/>
+        <line x1="600" y1="0" x2="600" y2="700"/>
+      </g>
+
+      <!-- Main Central Map Screen -->
+      <rect x="250" y="80" width="400" height="280" rx="8" fill="#08140E" stroke="#254F36" stroke-width="2"/>
+      <rect x="250" y="80" width="400" height="280" rx="8" fill="url(#screen-glow)"/>
+      <rect x="250" y="80" width="400" height="30" rx="8" fill="#1C3A2A"/>
+      <rect x="250" y="100" width="400" height="10" fill="#1C3A2A"/>
+      <circle cx="270" cy="95" r="4" fill="#E07B39"/>
+      <circle cx="285" cy="95" r="4" fill="#D4A017"/>
+      <text x="305" y="99" fill="rgba(245,237,216,0.6)" font-family="monospace" font-size="10" font-weight="bold">DISTRICT OUTBREAK HEATMAP</text>
+      
+      <!-- Abstract Map (Tamil Nadu shape) inside screen -->
+      <g transform="translate(340, 130) scale(0.9)" opacity="0.8">
+        <path d="M50,10 L100,5 L140,20 L160,50 L180,80 L200,90 L210,140 L190,180 L160,200 L120,220 L80,210 L50,180 L20,130 L10,80 Z" fill="#143422" stroke="#3D7A4F" stroke-width="1.5"/>
+        <path d="M50,10 L100,5 L100,60 L50,60 Z" fill="#9B2B1A" opacity="0.8"/>
+        <path d="M100,5 L140,20 L130,70 L100,60 Z" fill="#E07B39" opacity="0.8"/>
+        <path d="M130,70 L160,50 L180,80 L160,110 L120,100 Z" fill="#1C3A2A" opacity="0.6"/>
+        <path d="M100,60 L130,70 L120,100 L70,110 L50,60 Z" fill="#3D7A4F" opacity="0.8"/>
+        <path d="M70,110 L120,100 L160,110 L150,160 L100,150 Z" fill="#9B2B1A" opacity="0.6"/>
+        <path d="M150,160 L190,180 L160,200 L120,220 L100,180 Z" fill="#E07B39" opacity="0.7"/>
+        <circle cx="75" cy="35" r="5" fill="#fff" filter="url(#glow)"/>
+        <circle cx="120" cy="40" r="3" fill="#D4A017"/>
+        <circle cx="130" cy="130" r="6" fill="#fff" filter="url(#glow)"/>
+        <circle cx="150" cy="190" r="4" fill="#D4A017"/>
+      </g>
+      
+      <!-- Left Dashboard Screen (Chart) -->
+      <rect x="60" y="160" width="160" height="200" rx="6" fill="#08140E" stroke="#254F36" stroke-width="1.5"/>
+      <rect x="60" y="160" width="160" height="24" rx="6" fill="#1C3A2A"/>
+      <rect x="60" y="174" width="160" height="10" fill="#1C3A2A"/>
+      <text x="75" y="176" fill="rgba(245,237,216,0.5)" font-family="monospace" font-size="9">DISEASE FREQUENCY</text>
+      <g transform="translate(80, 200)">
+        <line x1="0" y1="0" x2="0" y2="130" stroke="#254F36" stroke-width="1"/>
+        <line x1="0" y1="130" x2="120" y2="130" stroke="#254F36" stroke-width="1"/>
+        <rect x="15" y="40" width="16" height="90" fill="#9B2B1A" rx="2"/>
+        <rect x="42" y="70" width="16" height="60" fill="#E07B39" rx="2"/>
+        <rect x="69" y="90" width="16" height="40" fill="#D4A017" rx="2"/>
+        <rect x="96" y="110" width="16" height="20" fill="#3D7A4F" rx="2"/>
+      </g>
+
+      <!-- Right Dashboard Screen (Alerts) -->
+      <rect x="680" y="160" width="160" height="200" rx="6" fill="#08140E" stroke="#254F36" stroke-width="1.5"/>
+      <rect x="680" y="160" width="160" height="24" rx="6" fill="#1C3A2A"/>
+      <rect x="680" y="174" width="160" height="10" fill="#1C3A2A"/>
+      <text x="695" y="176" fill="rgba(245,237,216,0.5)" font-family="monospace" font-size="9">LIVE ALERTS</text>
+      <g transform="translate(695, 200)">
+        <rect x="0" y="0" width="130" height="35" rx="4" fill="#9B2B1A" opacity="0.2"/>
+        <rect x="0" y="0" width="4" height="35" rx="2" fill="#9B2B1A"/>
+        <line x1="15" y1="12" x2="80" y2="12" stroke="#fff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+        <line x1="15" y1="23" x2="50" y2="23" stroke="#fff" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+        <rect x="0" y="45" width="130" height="35" rx="4" fill="#E07B39" opacity="0.15"/>
+        <rect x="0" y="45" width="4" height="35" rx="2" fill="#E07B39"/>
+        <line x1="15" y1="57" x2="90" y2="57" stroke="#fff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+        <line x1="15" y1="68" x2="60" y2="68" stroke="#fff" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+        <rect x="0" y="90" width="130" height="35" rx="4" fill="#9B2B1A" opacity="0.2"/>
+        <rect x="0" y="90" width="4" height="35" rx="2" fill="#9B2B1A"/>
+        <line x1="15" y1="102" x2="70" y2="102" stroke="#fff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+        <line x1="15" y1="113" x2="40" y2="113" stroke="#fff" stroke-width="2" opacity="0.3" stroke-linecap="round"/>
+      </g>
+
+      <!-- Desk Surface -->
+      <path d="M0,450 L200,420 L700,420 L900,450 L900,700 L0,700 Z" fill="#0D2116"/>
+      <rect x="0" y="450" width="900" height="2" fill="rgba(127,201,154,0.15)"/>
+      
+      <!-- Glowing alert lights -->
+      <circle cx="585" cy="460" r="6" fill="#9B2B1A" filter="url(#glow)"/>
+      <circle cx="610" cy="460" r="6" fill="#3D7A4F"/>
+      
+      <!-- Connective lines -->
+      <path d="M450,420 C450,400 480,410 480,360" fill="none" stroke="#254F36" stroke-width="3"/>
+      <path d="M140,425 C140,400 120,410 120,360" fill="none" stroke="#254F36" stroke-width="2"/>
+      <path d="M760,425 C760,400 780,410 780,360" fill="none" stroke="#254F36" stroke-width="2"/>
+
+      <rect x="0" y="580" width="900" height="120" fill="rgba(6,15,10,0.8)"/>
+    </svg>
+    <div class="illus-caption">
+      <h2>Safeguard the District.</h2>
+      <p>Monitor outbreaks, analyze trends, and dispatch field agents before diseases spread.</p>
+      <div class="step-pills">
+        <div class="step-pill">📡 <span>Live</span> Field Data</div>
+        <div class="step-pill">🚨 <span>Instant</span> Escalations</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-panel">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 2C11 2 5.5 6 5.5 12C5.5 15.6 7.9 18.5 11 18.5C14.1 18.5 16.5 15.6 16.5 12C16.5 6 11 2 11 2Z" fill="#5A9E6A"/>
+          <path d="M11 7C11 7 8 10 8 14" stroke="#C8873A" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M11 7L14 10" stroke="#C8873A" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-name">Farm<span>Sense</span> AI</div>
+    </div>
+    
+    <div class="portal-badge">District Command Portal</div>
+
+    <div class="form-box">
+      <div class="error-msg" id="errMsg"></div>
+
+      <div class="fgroup">
+        <label>Admin ID</label>
+        <input type="text" id="a-id" placeholder="e.g. ADMIN001" value="ADMIN001"/>
+      </div>
+      <div class="fgroup">
+        <label>Secure Password</label>
+        <input type="password" id="a-pass" placeholder="Enter password" value="farmsense2026"/>
+      </div>
+      <button class="btn-login" onclick="doAdminLogin()">🔐 Access Dashboard</button>
+    </div>
+
+    <div class="trust-row">
+      <div class="trust-badge">✓ State Agriculture Department</div>
+      <div class="trust-badge">✓ Govt. of India</div>
+    </div>
+
+    <div class="farmer-link">
+      Looking for the farmer portal? <a href="/">Return Home →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function showErr(msg) { 
+  const e = document.getElementById('errMsg'); 
+  e.textContent = msg; 
+  e.style.display = 'block'; 
+}
+
+function hideErr() { 
+  document.getElementById('errMsg').style.display = 'none'; 
+}
+
+function doAdminLogin() {
+  hideErr();
+  const aid = document.getElementById('a-id').value.trim();
+  const pass = document.getElementById('a-pass').value.trim();
+
+  if (!aid || !pass) {
+    showErr('Please enter both Admin ID and Password.');
+    return;
+  }
+
+  if (aid === 'ADMIN001' && pass === 'farmsense2026') {
+    const btn = document.querySelector('.btn-login');
+    btn.innerHTML = 'Connecting...';
+    btn.style.opacity = '0.7';
+    
+    localStorage.setItem('fs_admin_session', JSON.stringify({
+      id: aid,
+      region: 'Tamil Nadu',
+      loginTime: new Date().toISOString()
+    }));
+    
+    setTimeout(() => {
+      window.location.href = 'admin.html';
+    }, 600);
+  } else {
+    showErr('Invalid Admin ID or Password. Access denied.');
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const session = localStorage.getItem('fs_admin_session');
+  if (session) {
+    window.location.href = 'admin.html';
+  }
+});
+</script>
+</body>
+</html>

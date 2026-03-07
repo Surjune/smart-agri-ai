@@ -924,7 +924,20 @@
 </main>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD7z8TXaB9hF9sxmlaVOq2pkRW4TtogKTQ",
+  authDomain: "farmsense-ai-58de6.firebaseapp.com",
+  databaseURL: "https://farmsense-ai-58de6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "farmsense-ai-58de6",
+  storageBucket: "farmsense-ai-58de6.firebasestorage.app",
+  messagingSenderId: "580625760976",
+  appId: "1:580625760976:web:cf0d4f054e41be158354d5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 // ─── PROFILE ───
 let farmer = {name:'Farmer',district:'your district',crop:'your crop',acres:2.5};
 window.addEventListener('DOMContentLoaded',()=>{
@@ -1441,12 +1454,22 @@ function setBar(id,pct){
 
 // ─── SHARED ───
 function saveReport(r){
-  let rs=JSON.parse(localStorage.getItem('fs_reports')||'[]');
-  rs.push({...r,id:Date.now()});
-  localStorage.setItem('fs_reports',JSON.stringify(rs));
-  let st=JSON.parse(localStorage.getItem('fs_stats')||'{"totalFarmers":1247,"totalReports":84,"activeAlerts":2,"districts":12}');
-  st.totalReports+=1;
-  localStorage.setItem('fs_stats',JSON.stringify(st));
+  const reportWithId = {...r, id: Date.now()};
+  
+  // Push the report directly to the 'reports' node in Firebase
+  const newReportRef = db.ref('reports').push();
+  newReportRef.set(reportWithId);
+  
+  // Increment the totalReports counter in the 'stats' node
+  db.ref('stats').once('value', snapshot => {
+    if (snapshot.exists()) {
+      let st = snapshot.val();
+      st.totalReports += 1;
+      db.ref('stats').set(st);
+    } else {
+      db.ref('stats').set({totalFarmers:1247,totalReports:85,activeAlerts:2,districts:12});
+    }
+  });
 }
 </script>
 </body>

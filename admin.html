@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FarmSense AI — District Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vesper+Libre:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --cream:#F5EDD8;--banyan:#1C3A2A;--paddy:#3D7A4F;--paddy-bg:#E8F4ED;
+      --gold:#C8873A;--soil:#1A1209;--muted:#6B5E4E;--border:#DDD4C0;
+      --white:#FFFFFF;--turmeric:#D4A017;--danger:#9B2B1A;--amber:#E07B39;
+      --danger-bg:rgba(155,43,26,0.08);--amber-bg:rgba(224,123,57,0.08);
+    }
+    html,body{height:100%;font-family:'Noto Sans',sans-serif;background:var(--cream);overflow-x:hidden}
+
+    /* ─ LAYOUT ─ */
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:260px;background:var(--banyan);display:flex;flex-direction:column;padding:1.5rem 1rem;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+    .sidebar-brand{display:flex;align-items:center;gap:.6rem;margin-bottom:2rem}
+    .sidebar-brand-icon{width:36px;height:36px;background:rgba(245,237,216,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center}
+    .sidebar-brand-name{font-family:'Vesper Libre',serif;font-size:1.25rem;font-weight:700;color:var(--cream)}
+    .sidebar-brand-name span{color:#7FC99A}
+
+    .admin-pill{background:rgba(245,237,216,0.06);border:1px solid rgba(245,237,216,0.1);border-radius:8px;padding:.6rem .8rem;margin-bottom:1.8rem;display:flex;align-items:center;gap:.6rem}
+    .admin-avatar{width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--white)}
+    .admin-info{line-height:1.3}
+    .admin-name{color:var(--cream);font-size:.82rem;font-weight:600}
+    .admin-role{color:rgba(245,237,216,0.5);font-size:.68rem}
+
+    .nav{flex:1}
+    .nav-item{display:flex;align-items:center;gap:.7rem;padding:.65rem .8rem;border-radius:8px;color:rgba(245,237,216,0.6);font-size:.85rem;cursor:pointer;transition:all .15s;margin-bottom:.25rem;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+    .nav-item:hover,.nav-item.active{background:rgba(245,237,216,0.08);color:var(--cream)}
+    .nav-item.active{font-weight:600;border-left:3px solid var(--gold)}
+    .nav-icon{font-size:1.1rem;width:1.4rem;text-align:center}
+
+    .btn-logout{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border-radius:8px;background:rgba(155,43,26,0.15);border:1px solid rgba(155,43,26,0.25);color:#F5C6C2;font-size:.82rem;cursor:pointer;width:100%;font-family:inherit;transition:background .2s}
+    .btn-logout:hover{background:rgba(155,43,26,0.3)}
+
+    .main{margin-left:260px;flex:1;padding:1.5rem 2rem 3rem;min-width:0}
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+    .topbar h1{font-family:'Vesper Libre',serif;font-size:1.5rem;color:var(--banyan)}
+    .topbar-right{display:flex;align-items:center;gap:.8rem}
+    .live-dot{width:8px;height:8px;background:#3D7A4F;border-radius:50%;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .live-label{font-size:.75rem;color:var(--muted)}
+
+    /* ─ SECTIONS ─ */
+    .section{display:none}
+    .section.active{display:block}
+
+    /* ─ STAT CARDS ─ */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem}
+    .stat-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.2rem;transition:transform .15s,box-shadow .15s}
+    .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(28,58,42,0.08)}
+    .stat-icon{font-size:1.5rem;margin-bottom:.5rem}
+    .stat-val{font-family:'DM Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--banyan);line-height:1}
+    .stat-label{font-size:.78rem;color:var(--muted);margin-top:.3rem}
+
+    /* ─ CARD ─ */
+    .card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+    .card-title{font-family:'Vesper Libre',serif;font-size:1.1rem;color:var(--banyan);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+
+    /* ─ TABLE ─ */
+    .tbl-wrap{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;font-size:.82rem}
+    th{text-align:left;padding:.65rem .8rem;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap}
+    td{padding:.65rem .8rem;border-bottom:1px solid #EDE5D0;color:var(--soil);white-space:nowrap}
+    tr:hover td{background:rgba(61,122,79,0.03)}
+
+    .pill{display:inline-block;padding:.2rem .55rem;border-radius:100px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+    .pill-high{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(155,43,26,0.2)}
+    .pill-medium{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(224,123,57,0.2)}
+    .pill-low{background:var(--paddy-bg);color:var(--paddy);border:1px solid rgba(61,122,79,0.2)}
+    .status-pill{display:inline-block;padding:.15rem .5rem;border-radius:100px;font-size:.68rem;font-weight:600}
+    .st-pending{background:#FFF8E7;color:#B8860B;border:1px solid #E8D48B}
+    .st-escalated{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(155,43,26,0.2)}
+    .st-resolved{background:var(--paddy-bg);color:var(--paddy);border:1px solid rgba(61,122,79,0.2)}
+
+    /* ─ ALERTS ─ */
+    .alert-card{background:var(--white);border:1.5px solid rgba(155,43,26,0.15);border-left:4px solid var(--danger);border-radius:10px;padding:1rem 1.2rem;margin-bottom:.8rem;display:flex;justify-content:space-between;align-items:center;gap:1rem}
+    .alert-info h4{font-size:.9rem;color:var(--soil);margin-bottom:.2rem}
+    .alert-info p{font-size:.78rem;color:var(--muted)}
+    .btn-escalate{padding:.45rem .9rem;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .2s}
+    .btn-esc-active{background:var(--danger);color:var(--white)}
+    .btn-esc-active:hover{background:#7A2215;box-shadow:0 4px 12px rgba(155,43,26,0.3)}
+    .btn-esc-done{background:var(--paddy-bg);color:var(--paddy);cursor:default}
+
+    /* ─ HEATMAP ─ */
+    .heatmap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.6rem}
+    .heat-box{border-radius:8px;padding:.6rem .7rem;text-align:center;font-size:.72rem;font-weight:600;border:1px solid rgba(0,0,0,0.05)}
+    .heat-box .district-name{margin-bottom:.2rem;font-weight:700;font-size:.75rem}
+    .heat-box .report-count{font-family:'DM Mono',monospace;font-size:.82rem}
+    .heat-na{background:#F0EBD8;color:var(--muted)}
+    .heat-low{background:#E8F4ED;color:#2D6B3F}
+    .heat-med{background:#FFF0E0;color:#B5651D}
+    .heat-high{background:#FDECEA;color:#9B2B1A}
+
+    .empty-state{text-align:center;padding:3rem;color:var(--muted);font-size:.9rem}
+
+    /* ─ CHART ─ */
+    .chart-wrap{max-height:350px;position:relative}
+
+    /* ─ HAMBURGER ─ */
+    .hamburger{display:none;position:fixed;top:1rem;left:1rem;z-index:200;background:var(--banyan);border:none;border-radius:8px;padding:.5rem .6rem;cursor:pointer}
+    .hamburger span{display:block;width:20px;height:2px;background:var(--cream);margin:4px 0;transition:all .2s}
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99}
+
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.open{transform:translateX(0)}
+      .overlay.open{display:block}
+      .hamburger{display:block}
+      .main{margin-left:0;padding:1rem 1rem 2rem;padding-top:3.5rem}
+      .stat-grid{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+
+<button class="hamburger" id="burger" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+          <path d="M11 2C11 2 5.5 6 5.5 12C5.5 15.6 7.9 18.5 11 18.5C14.1 18.5 16.5 15.6 16.5 12C16.5 6 11 2 11 2Z" fill="#5A9E6A"/>
+          <path d="M11 7C11 7 8 10 8 14" stroke="#C8873A" stroke-width="1.2" stroke-linecap="round"/>
+          <path d="M11 7L14 10" stroke="#C8873A" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sidebar-brand-name">Farm<span>Sense</span> AI</div>
+    </div>
+
+    <div class="admin-pill">
+      <div class="admin-avatar">DA</div>
+      <div class="admin-info">
+        <div class="admin-name" id="sb-admin-name">District Admin</div>
+        <div class="admin-role">Agriculture Officer · TN</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">📊</span> Dashboard Overview</button>
+      <button class="nav-item" onclick="go('reports',this)"><span class="nav-icon">📋</span> Disease Reports</button>
+      <button class="nav-item" onclick="go('analytics',this)"><span class="nav-icon">📈</span> Analytics</button>
+      <button class="nav-item" onclick="go('alerts',this)"><span class="nav-icon">🚨</span> Alert Management</button>
+      <button class="nav-item" onclick="go('heatmap',this)"><span class="nav-icon">🗺️</span> District Heatmap</button>
+    </div>
+
+    <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h1 id="page-title">Dashboard Overview</h1>
+      <div class="topbar-right">
+        <span class="live-dot"></span>
+        <span class="live-label" id="refresh-label">Live · Auto-refresh 30s</span>
+      </div>
+    </div>
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="section active" id="sec-overview">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-icon">👨‍🌾</div><div class="stat-val" id="s-farmers">—</div><div class="stat-label">Total Farmers Registered</div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="s-reports">—</div><div class="stat-label">Total Disease Reports</div></div>
+        <div class="stat-card"><div class="stat-icon">🚨</div><div class="stat-val" id="s-alerts">—</div><div class="stat-label">Active High-Risk Alerts</div></div>
+        <div class="stat-card"><div class="stat-icon">📍</div><div class="stat-val" id="s-districts">—</div><div class="stat-label">Districts Covered</div></div>
+      </div>
+
+      <!-- Recent Reports Summary -->
+      <div class="card">
+        <div class="card-title">📋 Recent Disease Reports</div>
+        <div class="tbl-wrap">
+          <table id="overview-tbl">
+            <thead><tr><th>#</th><th>Farmer</th><th>District</th><th>Disease</th><th>Risk</th><th>Date</th></tr></thead>
+            <tbody id="overview-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="overview-empty" style="display:none">No reports yet. Data will appear when farmers submit disease analyses.</div>
+      </div>
+    </div>
+
+    <!-- ═══ REPORTS ═══ -->
+    <div class="section" id="sec-reports">
+      <div class="card">
+        <div class="card-title">📋 All Disease Reports</div>
+        <div class="tbl-wrap">
+          <table id="reports-tbl">
+            <thead><tr><th>#</th><th>Farmer</th><th>District</th><th>Crop</th><th>Disease</th><th>Risk</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="reports-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="reports-empty" style="display:none">No reports yet.</div>
+      </div>
+    </div>
+
+    <!-- ═══ ANALYTICS ═══ -->
+    <div class="section" id="sec-analytics">
+      <div class="card">
+        <div class="card-title">📈 Disease Frequency Analysis</div>
+        <div class="chart-wrap"><canvas id="diseaseChart"></canvas></div>
+      </div>
+      <div class="stat-grid" id="analytics-summary"></div>
+    </div>
+
+    <!-- ═══ ALERTS ═══ -->
+    <div class="section" id="sec-alerts">
+      <div class="card">
+        <div class="card-title">🚨 High-Risk Alert Management</div>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Reports with <strong>high</strong> risk level that need immediate attention. Escalate to notify the State Agriculture Department.</p>
+        <div id="alerts-list"></div>
+        <div class="empty-state" id="alerts-empty" style="display:none">No high-risk alerts. All clear! ✅</div>
+      </div>
+    </div>
+
+    <!-- ═══ HEATMAP ═══ -->
+    <div class="section" id="sec-heatmap">
+      <div class="card">
+        <div class="card-title">🗺️ Tamil Nadu District Risk Heatmap</div>
+        <p style="font-size:.82rem;color:var(--muted);margin-bottom:1rem">Color-coded by the highest risk level reported from each district.</p>
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── FIREBASE ───
+const firebaseConfig = {
+  apiKey: "AIzaSyD7z8TXaB9hF9sxmlaVOq2pkRW4TtogKTQ",
+  authDomain: "farmsense-ai-58de6.firebaseapp.com",
+  databaseURL: "https://farmsense-ai-58de6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "farmsense-ai-58de6",
+  storageBucket: "farmsense-ai-58de6.firebasestorage.app",
+  messagingSenderId: "580625760976",
+  appId: "1:580625760976:web:cf0d4f054e41be158354d5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ─── AUTH GUARD ───
+const session = JSON.parse(localStorage.getItem('fs_admin_session') || 'null');
+if (!session) window.location.href = 'admin-login.html';
+
+// ─── NAVIGATION ───
+function go(sec, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + sec).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const titles = { overview:'Dashboard Overview', reports:'Disease Reports', analytics:'Analytics', alerts:'Alert Management', heatmap:'District Heatmap' };
+  document.getElementById('page-title').textContent = titles[sec] || sec;
+  // Close sidebar on mobile
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('open');
+}
+
+function doLogout() {
+  localStorage.removeItem('fs_admin_session');
+  window.location.href = 'admin-login.html';
+}
+
+// ─── RISK PILL HTML ───
+function riskPill(r) {
+  const c = r === 'high' ? 'pill-high' : r === 'medium' ? 'pill-medium' : 'pill-low';
+  const l = r === 'high' ? '🔴 High' : r === 'medium' ? '🟠 Medium' : '🟢 Low';
+  return `<span class="pill ${c}">${l}</span>`;
+}
+
+function statusPill(s) {
+  const c = s === 'Escalated' ? 'st-escalated' : s === 'Resolved' ? 'st-resolved' : 'st-pending';
+  return `<span class="status-pill ${c}">${s || 'Pending'}</span>`;
+}
+
+// ─── RENDER ALL DATA ───
+let diseaseChart = null;
+let allReports = [];
+
+function renderDashboard(reports, stats) {
+  allReports = reports;
+
+  // ── Stats ──
+  document.getElementById('s-farmers').textContent = (stats.totalFarmers || 0).toLocaleString('en-IN');
+  document.getElementById('s-reports').textContent = (stats.totalReports || 0).toLocaleString('en-IN');
+  document.getElementById('s-alerts').textContent = reports.filter(r => r.risk === 'high' && r.status !== 'Resolved').length;
+  document.getElementById('s-districts').textContent = stats.districts || 0;
+
+  // ── Overview Table (last 5) ──
+  const recent = reports.slice(-5).reverse();
+  const otb = document.getElementById('overview-tbody');
+  if (recent.length === 0) {
+    otb.innerHTML = '';
+    document.getElementById('overview-empty').style.display = 'block';
+  } else {
+    document.getElementById('overview-empty').style.display = 'none';
+    otb.innerHTML = recent.map((r, i) => `<tr>
+      <td>${i + 1}</td><td>${r.farmer || '—'}</td><td>${r.district || '—'}</td>
+      <td>${r.disease || '—'}</td><td>${riskPill(r.risk)}</td><td>${r.date || '—'}</td>
+    </tr>`).join('');
+  }
+
+  // ── Full Reports Table ──
+  const rtb = document.getElementById('reports-tbody');
+  if (reports.length === 0) {
+    rtb.innerHTML = '';
+    document.getElementById('reports-empty').style.display = 'block';
+  } else {
+    document.getElementById('reports-empty').style.display = 'none';
+    rtb.innerHTML = reports.map((r, i) => `<tr>
+      <td>${i + 1}</td><td>${r.farmer || '—'}</td><td>${r.district || '—'}</td>
+      <td>${r.crop || '—'}</td><td>${r.disease || '—'}</td><td>${riskPill(r.risk)}</td>
+      <td>${r.date || '—'}</td><td>${statusPill(r.status)}</td>
+    </tr>`).join('');
+  }
+
+  // ── Analytics Chart ──
+  const freq = {};
+  reports.forEach(r => { if (r.disease) freq[r.disease] = (freq[r.disease] || 0) + 1; });
+  const labels = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+  const dataPts = labels.map(l => freq[l]);
+  const colors = ['#9B2B1A','#E07B39','#D4A017','#3D7A4F','#1C3A2A','#C8873A','#6B5E4E','#7FC99A'];
+
+  if (diseaseChart) diseaseChart.destroy();
+  const ctx = document.getElementById('diseaseChart').getContext('2d');
+  diseaseChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ label: 'Cases Reported', data: dataPts, backgroundColor: colors.slice(0, labels.length), borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'DM Mono' } }, grid: { color: '#EDE5D0' } },
+        x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Analytics summary
+  const totalDiseases = labels.length;
+  const topDisease = labels[0] || 'N/A';
+  document.getElementById('analytics-summary').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">🦠</div><div class="stat-val">${totalDiseases}</div><div class="stat-label">Unique Diseases Detected</div></div>
+    <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-val" style="font-size:1rem">${topDisease}</div><div class="stat-label">Most Reported Disease</div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-val">${reports.filter(r=>r.risk==='high').length}</div><div class="stat-label">High Risk Cases</div></div>
+  `;
+
+  // ── Alerts ──
+  const highRisk = reports.filter(r => r.risk === 'high');
+  const al = document.getElementById('alerts-list');
+  if (highRisk.length === 0) {
+    al.innerHTML = '';
+    document.getElementById('alerts-empty').style.display = 'block';
+  } else {
+    document.getElementById('alerts-empty').style.display = 'none';
+    al.innerHTML = highRisk.map((r, i) => {
+      const isEsc = r.status === 'Escalated';
+      return `<div class="alert-card">
+        <div class="alert-info">
+          <h4>🔴 ${r.disease || 'Unknown'} — ${r.district || '—'}</h4>
+          <p>${r.farmer || '—'} · ${r.crop || '—'} · ${r.date || '—'}</p>
+        </div>
+        <button class="btn-escalate ${isEsc ? 'btn-esc-done' : 'btn-esc-active'}" 
+          ${isEsc ? 'disabled' : `onclick="escalate(this, ${i})"`}>
+          ${isEsc ? '✅ Escalated' : '🚨 Escalate'}
+        </button>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Heatmap ──
+  renderHeatmap(reports);
+}
+
+// ─── ESCALATE ───
+function escalate(btn, alertIdx) {
+  const highRisk = allReports.filter(r => r.risk === 'high');
+  const target = highRisk[alertIdx];
+  if (!target) return;
+
+  // Find the original index in allReports
+  const origIdx = allReports.findIndex(r => r.id === target.id || (r.farmer === target.farmer && r.disease === target.disease && r.date === target.date));
+  if (origIdx === -1) return;
+
+  // Update in Firebase
+  db.ref('reports/' + origIdx + '/status').set('Escalated');
+
+  btn.className = 'btn-escalate btn-esc-done';
+  btn.textContent = '✅ Escalated';
+  btn.disabled = true;
+}
+
+// ─── TN HEATMAP ───
+const TN_DISTRICTS = [
+  'Ariyalur','Chengalpattu','Chennai','Coimbatore','Cuddalore','Dharmapuri',
+  'Dindigul','Erode','Kallakurichi','Kancheepuram','Kanyakumari','Karur',
+  'Krishnagiri','Madurai','Mayiladuthurai','Nagapattinam','Namakkal','Nilgiris',
+  'Perambalur','Pudukkottai','Ramanathapuram','Ranipet','Salem','Sivaganga',
+  'Tenkasi','Thanjavur','Theni','Thoothukudi','Tiruchirappalli','Tirunelveli',
+  'Tirupattur','Tiruvallur','Tiruvannamalai','Tiruvarur','Vellore',
+  'Viluppuram','Villupuram','Virudhunagar'
+];
+
+function renderHeatmap(reports) {
+  const grid = document.getElementById('heatmap-grid');
+  const districtData = {};
+
+  reports.forEach(r => {
+    const d = (r.district || '').trim();
+    if (!d) return;
+    if (!districtData[d]) districtData[d] = { count: 0, maxRisk: 'low' };
+    districtData[d].count++;
+    if (r.risk === 'high') districtData[d].maxRisk = 'high';
+    else if (r.risk === 'medium' && districtData[d].maxRisk !== 'high') districtData[d].maxRisk = 'medium';
+  });
+
+  // Merge TN_DISTRICTS with any districts from reports
+  const allDistricts = [...new Set([...TN_DISTRICTS, ...Object.keys(districtData)])].sort();
+
+  grid.innerHTML = allDistricts.map(d => {
+    const info = districtData[d];
+    if (!info) return `<div class="heat-box heat-na"><div class="district-name">${d}</div><div class="report-count">0 reports</div></div>`;
+    const cls = info.maxRisk === 'high' ? 'heat-high' : info.maxRisk === 'medium' ? 'heat-med' : 'heat-low';
+    return `<div class="heat-box ${cls}"><div class="district-name">${d}</div><div class="report-count">${info.count} report${info.count > 1 ? 's' : ''}</div></div>`;
+  }).join('');
+}
+
+// ─── FIREBASE REAL-TIME LISTENERS ───
+function startListening() {
+  // Listen to reports
+  db.ref('reports').on('value', snapshot => {
+    let reports = [];
+    const data = snapshot.val();
+    if (data) {
+      if (Array.isArray(data)) {
+        reports = data.filter(Boolean);
+      } else {
+        // Object-form (when using push())
+        reports = Object.values(data).filter(Boolean);
+      }
+    }
+
+    // Listen to stats
+    db.ref('stats').once('value', statSnap => {
+      const stats = statSnap.val() || { totalFarmers: 0, totalReports: 0, activeAlerts: 0, districts: 0 };
+      renderDashboard(reports, stats);
+    });
+  });
+}
+
+// ─── INIT ───
+window.addEventListener('DOMContentLoaded', () => {
+  if (session) {
+    document.getElementById('sb-admin-name').textContent = session.id || 'Admin';
+  }
+  startListening();
+});
+</script>
+</body>
+</html>

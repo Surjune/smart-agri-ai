@@ -323,7 +323,20 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD7z8TXaB9hF9sxmlaVOq2pkRW4TtogKTQ",
+  authDomain: "farmsense-ai-58de6.firebaseapp.com",
+  databaseURL: "https://farmsense-ai-58de6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "farmsense-ai-58de6",
+  storageBucket: "farmsense-ai-58de6.firebasestorage.app",
+  messagingSenderId: "580625760976",
+  appId: "1:580625760976:web:cf0d4f054e41be158354d5"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tab==='login'?i===0:i===1));
   document.getElementById('view-login').classList.toggle('active', tab==='login');
@@ -362,22 +375,27 @@ function doRegister() {
 }
 
 function seedDemoData() {
-  if (!localStorage.getItem('fs_reports')) {
-    const demo=[
-      {id:1,farmer:'Ramesh K',district:'Villupuram',crop:'Paddy / Rice',disease:'Rice Blast',risk:'high',date:'06/03/2026',status:'Pending',reported:true},
-      {id:2,farmer:'Suresh M',district:'Thanjavur',crop:'Coconut',disease:'Tanjore Wilt',risk:'high',date:'05/03/2026',status:'Escalated',reported:true},
-      {id:3,farmer:'Priya S',district:'Coimbatore',crop:'Banana',disease:'Sigatoka Leaf Spot',risk:'medium',date:'05/03/2026',status:'Resolved',reported:true},
-      {id:4,farmer:'Kumar R',district:'Madurai',crop:'Tomato',disease:'Late Blight',risk:'high',date:'04/03/2026',status:'Pending',reported:true},
-      {id:5,farmer:'Lakshmi A',district:'Salem',crop:'Maize',disease:'Northern Leaf Blight',risk:'medium',date:'04/03/2026',status:'Pending',reported:false},
-      {id:6,farmer:'Murugan P',district:'Tirunelveli',crop:'Groundnut',disease:'Early Leaf Spot',risk:'low',date:'03/03/2026',status:'Resolved',reported:true},
-      {id:7,farmer:'Devi K',district:'Erode',crop:'Sugarcane',disease:'Red Rot',risk:'high',date:'03/03/2026',status:'Escalated',reported:true},
-      {id:8,farmer:'Rajan T',district:'Pudukkottai',crop:'Coconut',disease:'Rugose Spiralling Whitefly',risk:'medium',date:'02/03/2026',status:'Pending',reported:true},
-    ];
-    localStorage.setItem('fs_reports', JSON.stringify(demo));
-  }
-  if (!localStorage.getItem('fs_stats')) {
-    localStorage.setItem('fs_stats', JSON.stringify({totalFarmers:1247,totalReports:84,activeAlerts:2,districts:12}));
-  }
+  db.ref('reports').once('value', snapshot => {
+    if (!snapshot.exists()) {
+      const demo=[
+        {id:1,farmer:'Ramesh K',district:'Villupuram',crop:'Paddy / Rice',disease:'Rice Blast',risk:'high',date:'06/03/2026',status:'Pending',reported:true},
+        {id:2,farmer:'Suresh M',district:'Thanjavur',crop:'Coconut',disease:'Tanjore Wilt',risk:'high',date:'05/03/2026',status:'Escalated',reported:true},
+        {id:3,farmer:'Priya S',district:'Coimbatore',crop:'Banana',disease:'Sigatoka Leaf Spot',risk:'medium',date:'05/03/2026',status:'Resolved',reported:true},
+        {id:4,farmer:'Kumar R',district:'Madurai',crop:'Tomato',disease:'Late Blight',risk:'high',date:'04/03/2026',status:'Pending',reported:true},
+        {id:5,farmer:'Lakshmi A',district:'Salem',crop:'Maize',disease:'Northern Leaf Blight',risk:'medium',date:'04/03/2026',status:'Pending',reported:false},
+        {id:6,farmer:'Murugan P',district:'Tirunelveli',crop:'Groundnut',disease:'Early Leaf Spot',risk:'low',date:'03/03/2026',status:'Resolved',reported:true},
+        {id:7,farmer:'Devi K',district:'Erode',crop:'Sugarcane',disease:'Red Rot',risk:'high',date:'03/03/2026',status:'Escalated',reported:true},
+        {id:8,farmer:'Rajan T',district:'Pudukkottai',crop:'Coconut',disease:'Rugose Spiralling Whitefly',risk:'medium',date:'02/03/2026',status:'Pending',reported:true},
+      ];
+      db.ref('reports').set(demo);
+    }
+  });
+  
+  db.ref('stats').once('value', snapshot => {
+    if (!snapshot.exists()) {
+      db.ref('stats').set({totalFarmers:1247,totalReports:84,activeAlerts:2,districts:12});
+    }
+  });
 }
 
 window.addEventListener('DOMContentLoaded', () => {
