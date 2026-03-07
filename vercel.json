@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/analyse", "destination": "/api/analyse.js" },
+    { "source": "/admin", "destination": "/admin-login.html" },
+    { "source": "/", "destination": "/farmer-login.html" }
+  ]
+}

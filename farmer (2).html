@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FarmSense AI — My Farm</title>
+  <!-- Preconnect so font DNS resolves before the CSS is requested -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <!-- Load fonts async — page renders immediately with system font, swaps when ready -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Vesper+Libre:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'"/>
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vesper+Libre:wght@400;700&family=Noto+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap"/></noscript>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --cream:#F5EDD8;--cream2:#EDE4CC;--banyan:#1C3A2A;--paddy:#3D7A4F;
+      --paddy-l:#5A9E6A;--paddy-bg:#E8F4ED;--gold:#C8873A;--gold-bg:#FDF3E7;
+      --amber:#E07B39;--danger:#9B2B1A;--danger-bg:#FDECEA;
+      --soil:#1A1209;--muted:#6B5E4E;--border:#DDD4C0;--white:#fff;
+      --shadow:0 2px 14px rgba(26,18,9,.08);--sw:230px;--th:62px;
+    }
+    html,body{height:100%;font-family:'Noto Sans',sans-serif;background:var(--cream);color:var(--soil);font-size:15px;}
+    .app{display:flex;min-height:100vh;}
+
+    /* SIDEBAR */
+    .sidebar{width:var(--sw);background:var(--banyan);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s;}
+    .sb-brand{padding:1.1rem 1.1rem .9rem;border-bottom:1px solid rgba(255,255,255,.08);}
+    .sb-brand-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;}
+    .sb-logo{width:34px;height:34px;background:var(--paddy);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .sb-brand-name{font-family:'Vesper Libre',serif;font-size:1.05rem;font-weight:700;color:var(--cream);}
+    .sb-brand-name span{color:#7FC99A;}
+    .farmer-pill{background:rgba(255,255,255,.07);border-radius:8px;padding:.6rem .8rem;}
+    .farmer-pill .fn{color:var(--cream);font-size:.88rem;font-weight:600;margin-bottom:.2rem;}
+    .farmer-pill .fm{color:rgba(245,237,216,.5);font-size:.72rem;line-height:1.5;}
+    .farmer-pill .fm b{color:#D4A017;font-weight:600;}
+    .sb-nav{flex:1;padding:.8rem 0;overflow-y:auto;}
+    .nav-lbl{color:rgba(245,237,216,.3);font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;padding:.5rem 1.1rem .25rem;font-weight:700;}
+    .nav-item{display:flex;align-items:center;gap:.7rem;padding:.65rem 1.1rem;cursor:pointer;color:rgba(245,237,216,.6);font-size:.86rem;font-weight:500;border-left:3px solid transparent;transition:all .15s;user-select:none;}
+    .nav-item:hover{background:rgba(255,255,255,.06);color:var(--cream);}
+    .nav-item.active{background:rgba(90,158,106,.18);border-left-color:var(--paddy-l);color:var(--cream);}
+    .nav-icon{font-size:1.05rem;width:20px;text-align:center;flex-shrink:0;}
+    .sb-bottom{padding:.9rem 1.1rem;border-top:1px solid rgba(255,255,255,.08);}
+    .logout-btn{color:rgba(245,237,216,.45);font-size:.8rem;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:.5rem;transition:color .15s;}
+    .logout-btn:hover{color:var(--cream);}
+
+    /* TOPBAR */
+    .topbar{position:fixed;top:0;left:var(--sw);right:0;height:var(--th);background:var(--cream);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.6rem;z-index:90;}
+    .topbar-l{display:flex;align-items:center;gap:.8rem;}
+    .hamburger{display:none;flex-direction:column;gap:4px;cursor:pointer;padding:4px;}
+    .hamburger span{display:block;width:20px;height:2px;background:var(--soil);border-radius:2px;}
+    .page-title{font-family:'Vesper Libre',serif;font-size:1.1rem;font-weight:700;color:var(--banyan);}
+    .topbar-r{display:flex;align-items:center;gap:.9rem;}
+    .weather-chip{display:flex;align-items:center;gap:.45rem;background:var(--paddy-bg);border:1px solid #c8e6d0;border-radius:100px;padding:.28rem .75rem;font-size:.76rem;color:var(--banyan);font-weight:500;}
+    .notif{position:relative;cursor:pointer;font-size:1.15rem;}
+    .notif-dot{position:absolute;top:0;right:0;width:7px;height:7px;background:var(--amber);border-radius:50%;border:2px solid var(--cream);}
+
+    /* MAIN */
+    .main{margin-left:var(--sw);margin-top:var(--th);padding:1.8rem 1.8rem 3rem;min-height:calc(100vh - var(--th));}
+    .section{display:none;}
+    .section.active{display:block;}
+
+    /* CARDS */
+    .card{background:var(--white);border-radius:14px;box-shadow:var(--shadow);padding:1.4rem;border:1px solid var(--border);margin-bottom:1.25rem;}
+    .card-title{font-family:'Vesper Libre',serif;font-size:.98rem;font-weight:700;color:var(--banyan);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;}
+    .page-hdr{margin-bottom:1.6rem;}
+    .page-hdr h1{font-family:'Vesper Libre',serif;font-size:1.45rem;color:var(--banyan);font-weight:700;}
+    .page-hdr p{color:var(--muted);font-size:.86rem;margin-top:.2rem;}
+
+    /* STAT CARDS */
+    .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-bottom:1.25rem;}
+    .stat-card{background:var(--white);border-radius:14px;padding:1.1rem 1.3rem;border:1px solid var(--border);box-shadow:var(--shadow);border-left:4px solid var(--paddy);}
+    .stat-card.w{border-left-color:var(--amber);}
+    .stat-card.d{border-left-color:var(--danger);}
+    .stat-lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin-bottom:.35rem;}
+    .stat-val{font-family:'DM Mono',monospace;font-size:1.75rem;font-weight:500;color:var(--banyan);line-height:1;}
+    .stat-sub{font-size:.76rem;color:var(--muted);margin-top:.25rem;}
+    .alert-strip{display:flex;align-items:center;gap:.75rem;background:var(--gold-bg);border:1px solid #f0c070;border-radius:10px;padding:.7rem 1rem;margin-bottom:1.25rem;font-size:.86rem;color:#7a4a10;}
+
+    /* QUICK ACTIONS */
+    .qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-top:1.1rem;}
+    .qa-btn{display:flex;flex-direction:column;align-items:center;gap:.45rem;background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:1.1rem .9rem;cursor:pointer;font-family:'Noto Sans',sans-serif;font-size:.83rem;font-weight:600;color:var(--banyan);transition:all .2s;text-align:center;}
+    .qa-btn:hover{border-color:var(--paddy);background:var(--paddy-bg);transform:translateY(-2px);box-shadow:var(--shadow);}
+    .qa-icon{font-size:1.5rem;}
+
+    /* FORMS */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:1.1rem;}
+    .fg{display:flex;flex-direction:column;gap:.35rem;}
+    .fg.full{grid-column:1/-1;}
+    label{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+    select,input[type=text],input[type=number],input[type=tel],textarea{background:var(--cream);border:1.5px solid var(--border);border-radius:9px;padding:.62rem .85rem;font-family:'Noto Sans',sans-serif;font-size:.9rem;color:var(--soil);outline:none;transition:border-color .2s;width:100%;}
+    select:focus,input:focus,textarea:focus{border-color:var(--paddy);background:var(--white);}
+
+    .tog-group{display:flex;gap:.45rem;}
+    .tog-opt{flex:1;padding:.55rem .5rem;border-radius:8px;border:1.5px solid var(--border);background:var(--cream);cursor:pointer;text-align:center;font-size:.82rem;font-weight:600;color:var(--muted);transition:all .15s;user-select:none;}
+    .tog-opt.sel{background:var(--paddy);border-color:var(--paddy);color:white;}
+    .tog-opt.sel-amber{background:var(--amber);border-color:var(--amber);color:white;}
+    .tog-opt.sel-danger{background:var(--danger);border-color:var(--danger);color:white;}
+
+    .btn-primary{background:var(--banyan);color:var(--cream);border:none;border-radius:9px;padding:.75rem 1.6rem;font-family:'Noto Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;}
+    .btn-primary:hover{background:var(--paddy);transform:translateY(-1px);box-shadow:0 4px 16px rgba(28,58,42,.3);}
+    .btn-secondary{background:transparent;color:var(--banyan);border:1.5px solid var(--banyan);border-radius:9px;padding:.65rem 1.2rem;font-family:'Noto Sans',sans-serif;font-size:.86rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem;}
+    .btn-secondary:hover{background:var(--paddy-bg);}
+    .btn-row{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:.9rem;}
+
+    /* OUTPUT */
+    .output-area{display:none;margin-top:1.4rem;border-top:1.5px dashed var(--border);padding-top:1.4rem;}
+    .output-area.vis{display:block;animation:fadeIn .4s ease;}
+    .output-hdr{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:.75rem;}
+    .result-pill{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .75rem;border-radius:100px;font-size:.78rem;font-weight:700;}
+    .rp-h{background:var(--danger-bg);color:var(--danger);}
+    .rp-m{background:var(--gold-bg);color:#8a4a10;}
+    .rp-l{background:var(--paddy-bg);color:var(--paddy);}
+    .result-block{background:var(--cream);border-radius:10px;padding:.95rem;margin-bottom:.75rem;}
+    .result-block h4{font-family:'Vesper Libre',serif;font-size:.88rem;color:var(--muted);margin-bottom:.35rem;font-weight:700;}
+    .result-block p{font-size:.88rem;line-height:1.65;color:var(--soil);}
+    .disease-name{font-size:1.15rem;font-family:'Vesper Libre',serif;font-weight:700;color:var(--banyan);margin-bottom:.4rem;}
+    .source-badge{display:inline-flex;align-items:center;gap:.3rem;background:var(--paddy-bg);border:1px solid #c8e6d0;border-radius:6px;padding:.2rem .6rem;font-size:.7rem;color:var(--paddy);font-weight:600;margin-top:.4rem;}
+    .confirm-tick{display:inline-flex;align-items:center;gap:.4rem;color:var(--paddy);font-size:.84rem;font-weight:600;}
+
+    /* IMAGE UPLOAD */
+    .img-upload-zone{border:2px dashed var(--border);border-radius:14px;padding:0;text-align:center;color:var(--muted);font-size:.84rem;cursor:pointer;transition:all .25s;background:var(--cream);margin-bottom:1rem;position:relative;overflow:hidden;min-height:160px;display:flex;align-items:center;justify-content:center;}
+    .img-upload-zone:hover{border-color:var(--paddy);background:var(--paddy-bg);}
+    .img-upload-zone.has-img{border-color:var(--paddy);background:var(--white);padding:0;}
+    .img-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:2;}
+    .upload-prompt{padding:2rem 1.4rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;pointer-events:none;}
+    .upload-prompt .up-icon{font-size:2.5rem;}
+    .upload-prompt .up-title{font-weight:700;color:var(--banyan);font-size:.95rem;}
+    .upload-prompt .up-sub{font-size:.75rem;color:var(--muted);}
+    .upload-prompt .up-formats{font-size:.7rem;color:var(--muted);background:var(--cream2);border-radius:100px;padding:.18rem .65rem;margin-top:.2rem;}
+    #imgPreview{width:100%;max-height:260px;object-fit:cover;border-radius:12px;display:none;}
+    .img-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(26,18,9,.7));padding:.6rem .9rem;display:none;z-index:3;pointer-events:none;}
+    .img-overlay-txt{color:white;font-size:.75rem;font-weight:600;}
+    .img-change-btn{position:absolute;top:.6rem;right:.6rem;background:rgba(255,255,255,.9);border:none;border-radius:8px;padding:.3rem .7rem;font-size:.75rem;font-weight:600;color:var(--banyan);cursor:pointer;z-index:4;display:none;font-family:'Noto Sans',sans-serif;}
+    .img-upload-zone.has-img .img-overlay,.img-upload-zone.has-img .img-change-btn{display:block;}
+    /* AI loading state */
+    .ai-analysing{display:none;flex-direction:column;align-items:center;gap:.75rem;padding:1.5rem;background:var(--paddy-bg);border:1.5px solid #c8e6d0;border-radius:14px;margin-top:1rem;}
+    .ai-analysing.vis{display:flex;animation:fadeIn .3s ease;}
+    .ai-spin{width:36px;height:36px;border:3px solid #c8e6d0;border-top-color:var(--paddy);border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .ai-analysing p{font-size:.85rem;color:var(--banyan);font-weight:600;text-align:center;}
+    .ai-analysing small{font-size:.75rem;color:var(--muted);text-align:center;}
+    /* AI result block from Gemini */
+    .ai-result-raw{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:1rem 1.2rem;margin-top:.75rem;font-size:.88rem;line-height:1.7;color:var(--soil);white-space:pre-wrap;}
+
+    /* PEST CONTROL TRIGGER */
+    .pest-trigger-card{background:var(--danger-bg);border:1.5px solid #e8b4b0;border-radius:12px;padding:1.1rem 1.3rem;margin-top:1rem;}
+    .pest-trigger-card h4{font-family:'Vesper Libre',serif;color:var(--danger);font-size:.95rem;margin-bottom:.5rem;}
+    .pest-trigger-card p{font-size:.84rem;color:#6a1a0e;line-height:1.6;margin-bottom:.75rem;}
+    .trigger-steps{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.75rem;}
+    .trigger-step{display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;color:#6a1a0e;}
+    .trigger-step-num{background:var(--danger);color:white;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0;margin-top:.05rem;}
+    .trigger-active{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--danger);font-weight:600;}
+    .pulse-dot{width:10px;height:10px;background:var(--danger);border-radius:50%;animation:pulse 1.4s infinite;}
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.5);opacity:.5;}}
+
+    /* CHATBOT */
+    .lang-row{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap;}
+    .lang-lbl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);}
+    .lang-btn{padding:.35rem .85rem;border-radius:100px;border:1.5px solid var(--border);background:var(--cream);cursor:pointer;font-family:'Noto Sans',sans-serif;font-size:.8rem;font-weight:600;color:var(--muted);transition:all .15s;}
+    .lang-btn.active{background:var(--banyan);border-color:var(--banyan);color:var(--cream);}
+    .chat-win{height:400px;overflow-y:auto;background:var(--cream);border-radius:12px;padding:.9rem;display:flex;flex-direction:column;gap:.75rem;margin-bottom:.9rem;border:1px solid var(--border);scroll-behavior:smooth;}
+    .msg{max-width:84%;padding:.7rem 1rem;border-radius:14px;font-size:.88rem;line-height:1.7;}
+    .msg.bot{background:var(--white);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:3px;}
+    .msg.user{background:var(--banyan);color:var(--cream);align-self:flex-end;border-bottom-right-radius:3px;}
+    .msg-src{font-size:.68rem;color:var(--paddy);font-weight:600;margin-top:.35rem;}
+    .msg-time{font-size:.65rem;color:rgba(245,237,216,.45);margin-top:.2rem;text-align:right;}
+    .chat-inp-row{display:flex;gap:.55rem;}
+    .chat-inp-row input{flex:1;}
+    .mic-btn{width:42px;height:42px;background:var(--paddy-bg);border:1.5px solid #c8e6d0;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .2s;flex-shrink:0;}
+    .mic-btn.recording{background:var(--danger);border-color:var(--danger);animation:pulse 1s infinite;}
+    .send-btn{background:var(--banyan);color:white;border:none;border-radius:9px;padding:0 1.1rem;cursor:pointer;font-weight:700;font-size:.84rem;font-family:'Noto Sans',sans-serif;flex-shrink:0;transition:all .2s;}
+    .send-btn:hover{background:var(--paddy);}
+    .send-btn:disabled{opacity:.5;cursor:not-allowed;}
+    .chat-typing{display:none;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);padding:.4rem .6rem;}
+    .typing-dot{width:6px;height:6px;background:var(--muted);border-radius:50%;animation:typing .9s infinite;}
+    .typing-dot:nth-child(2){animation-delay:.2s;}
+    .typing-dot:nth-child(3){animation-delay:.4s;}
+    @keyframes typing{0%,60%,100%{transform:translateY(0);}30%{transform:translateY(-6px);}}
+    .quick-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;}
+    .chip{background:var(--white);border:1.5px solid var(--border);border-radius:100px;padding:.3rem .8rem;font-size:.77rem;color:var(--banyan);cursor:pointer;font-family:'Noto Sans',sans-serif;font-weight:500;transition:all .15s;white-space:nowrap;}
+    .chip:hover{background:var(--paddy-bg);border-color:var(--paddy);}
+    .chat-error{background:var(--danger-bg);border:1px solid #e8b4b0;border-radius:8px;padding:.5rem .8rem;font-size:.8rem;color:var(--danger);margin-top:.5rem;display:none;}
+
+    /* IRRIGATION */
+    .irr-sched{display:grid;grid-template-columns:repeat(7,1fr);gap:.45rem;margin-top:.9rem;}
+    .day-card{background:var(--cream);border-radius:9px;padding:.65rem .35rem;text-align:center;border:1.5px solid var(--border);}
+    .day-card.today{background:var(--banyan);border-color:var(--banyan);}
+    .day-card.rain{border-color:#7ab8d4;background:#eaf5fb;}
+    .day-card.skip{opacity:.6;}
+    .day-lbl{font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;}
+    .day-card.today .day-lbl{color:rgba(245,237,216,.7);}
+    .day-ico{font-size:1.2rem;margin:.25rem 0;}
+    .day-water{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;}
+    .day-card.today .day-water{color:rgba(245,237,216,.7);}
+
+    /* GAUGE / HEALTH */
+    .gauge-wrap{display:flex;flex-direction:column;align-items:center;margin:.8rem 0;}
+    .gauge-score{font-family:'DM Mono',monospace;font-size:3.2rem;font-weight:500;color:var(--banyan);line-height:1;}
+    .gauge-lbl{font-size:.83rem;color:var(--muted);margin-top:.25rem;}
+    .prog-row{display:flex;flex-direction:column;gap:.7rem;margin-top:1.25rem;}
+    .prog-info{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.28rem;}
+    .prog-info span:last-child{font-family:'DM Mono',monospace;}
+    .prog-bg{height:9px;background:var(--cream2);border-radius:100px;overflow:hidden;}
+    .prog-fill{height:100%;border-radius:100px;background:var(--paddy);transition:width .7s ease;}
+    .prog-fill.w{background:var(--amber);}
+    .prog-fill.d{background:var(--danger);}
+
+    /* YIELD */
+    .yield-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.9rem;margin-top:.9rem;}
+    .yield-card{background:var(--cream);border-radius:11px;padding:1rem;text-align:center;}
+    .yc-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:600;margin-bottom:.35rem;}
+    .yc-val{font-family:'DM Mono',monospace;font-size:1.45rem;color:var(--banyan);font-weight:500;}
+    .yield-card.profit .yc-val{color:var(--paddy);font-size:1.7rem;}
+
+    /* ROTATION */
+    .rot-result{display:flex;gap:.9rem;align-items:flex-start;background:var(--paddy-bg);border:1.5px solid #c8e6d0;border-radius:13px;padding:1.1rem 1.25rem;margin-top:.9rem;}
+    .rot-icon{font-size:2.3rem;flex-shrink:0;}
+    .rot-info h3{font-family:'Vesper Libre',serif;font-size:1.05rem;color:var(--banyan);margin-bottom:.3rem;}
+    .rot-info p{font-size:.84rem;color:var(--muted);line-height:1.6;}
+    .rot-tags{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.5rem;}
+    .rtag{background:white;border:1px solid #c8e6d0;border-radius:100px;padding:.18rem .65rem;font-size:.72rem;color:var(--paddy);font-weight:600;}
+
+    /* OVERLAY */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+    .overlay.on{display:block;}
+
+    @media(max-width:768px){
+      .sidebar{transform:translateX(-100%);width:260px;}
+      .sidebar.open{transform:translateX(0);}
+      .topbar{left:0;padding:0 1rem;}
+      .hamburger{display:flex;}
+      .main{margin-left:0;padding:1.2rem 1rem 3rem;}
+      .stats-row{grid-template-columns:1fr 1fr;}
+      .stats-row .stat-card:last-child{grid-column:1/-1;}
+      .form-grid{grid-template-columns:1fr;}
+      .qa-grid{grid-template-columns:1fr 1fr;}
+      .irr-sched{grid-template-columns:repeat(4,1fr);}
+      .yield-grid{grid-template-columns:1fr 1fr;}
+      .weather-chip{display:none;}
+      .rot-result{flex-direction:column;}
+    }
+    @media(max-width:400px){
+      .stats-row{grid-template-columns:1fr;}
+      .qa-grid{grid-template-columns:1fr;}
+      .irr-sched{grid-template-columns:repeat(3,1fr);}
+    }
+  </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeSB()"></div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-brand-row">
+      <div class="sb-logo">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M9 1.5C9 1.5 4.5 5 4.5 10C4.5 13 6.6 15.5 9 15.5C11.4 15.5 13.5 13 13.5 10C13.5 5 9 1.5 9 1.5Z" fill="#7FC99A"/>
+          <path d="M9 6C9 6 6.5 8.5 6.5 12" stroke="#C8873A" stroke-width="1.1" stroke-linecap="round"/>
+          <path d="M9 6L11.5 8.5" stroke="#C8873A" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sb-brand-name">Farm<span>Sense</span> AI</div>
+    </div>
+    <div class="farmer-pill">
+      <div class="fn" id="sb-name">🌾 Loading…</div>
+      <div class="fm" id="sb-meta">—</div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-lbl">My Farm</div>
+    <div class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">🏠</span> Overview</div>
+    <div class="nav-item" onclick="go('disease',this)"><span class="nav-icon">🔬</span> Detect Disease</div>
+    <div class="nav-item" onclick="go('pest',this)"><span class="nav-icon">🚨</span> Pest Control</div>
+    <div class="nav-item" onclick="go('irrigation',this)"><span class="nav-icon">💧</span> Irrigation Plan</div>
+    <div class="nav-lbl">Tools</div>
+    <div class="nav-item" onclick="go('chat',this)"><span class="nav-icon">💬</span> Ask FarmSense</div>
+    <div class="nav-item" onclick="go('yield',this)"><span class="nav-icon">📈</span> Yield &amp; Profit</div>
+    <div class="nav-item" onclick="go('rotation',this)"><span class="nav-icon">🔄</span> Crop Rotation</div>
+    <div class="nav-item" onclick="go('health',this)"><span class="nav-icon">🏥</span> Farm Health</div>
+  </nav>
+  <div class="sb-bottom">
+    <a href="farmer-login.html" class="logout-btn" onclick="localStorage.removeItem('fs_current_farmer')">← Logout</a>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-l">
+    <div class="hamburger" onclick="toggleSB()"><span></span><span></span><span></span></div>
+    <div class="page-title" id="pageTitle">Overview</div>
+  </div>
+  <div class="topbar-r">
+    <div class="weather-chip" id="weatherChip">🌤️ Loading…</div>
+    <div class="notif">🔔<div class="notif-dot"></div></div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ── OVERVIEW ── -->
+<section class="section active" id="sec-overview">
+  <div class="page-hdr">
+    <h1 id="greet">Good morning 🌾</h1>
+    <p id="greet-sub">Here's how your farm is doing today</p>
+  </div>
+  <div class="alert-strip">🌧️ <strong>Rain expected tomorrow afternoon.</strong> Consider delaying irrigation. Soil moisture should stay adequate.</div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-lbl">Farm Health</div><div class="stat-val">82<span style="font-size:.95rem">/100</span></div><div class="stat-sub">🟢 Good condition</div></div>
+    <div class="stat-card w"><div class="stat-lbl">Irrigation</div><div class="stat-val">18L</div><div class="stat-sub">🟡 Due today</div></div>
+    <div class="stat-card w"><div class="stat-lbl">Pest Risk</div><div class="stat-val">Med</div><div class="stat-sub">⚠️ Monitor leaves</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🚀 Quick Actions</div>
+    <p style="font-size:.83rem;color:var(--muted);margin-bottom:1rem;">What do you need help with today?</p>
+    <div class="qa-grid">
+      <button class="qa-btn" onclick="go('disease',qn('disease'))"><span class="qa-icon">🔬</span>Check My Crop</button>
+      <button class="qa-btn" onclick="go('pest',qn('pest'))"><span class="qa-icon">🚨</span>Pest Control</button>
+      <button class="qa-btn" onclick="go('chat',qn('chat'))"><span class="qa-icon">💬</span>Ask a Question</button>
+      <button class="qa-btn" onclick="go('irrigation',qn('irrigation'))"><span class="qa-icon">💧</span>Plan Irrigation</button>
+      <button class="qa-btn" onclick="go('yield',qn('yield'))"><span class="qa-icon">📈</span>Check Profit</button>
+      <button class="qa-btn" onclick="go('rotation',qn('rotation'))"><span class="qa-icon">🔄</span>Next Season</button>
+    </div>
+  </div>
+  <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted);text-align:center;">🌿 <strong style="color:var(--paddy)">1,247 farmers</strong> across India are using FarmSense this week</div>
+</section>
+
+<!-- ── DISEASE DETECTION ── -->
+<section class="section" id="sec-disease">
+  <div class="page-hdr">
+    <h1>Detect Crop Disease 🔬</h1>
+    <p>Take a clear photo of the affected leaf or stem. AI will analyse it and ask follow-up questions.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">📷 Upload a Photo of Your Crop</div>
+
+    <!-- Real image upload zone -->
+    <div class="img-upload-zone" id="imgUploadZone">
+      <input type="file" id="imgFile" accept="image/*" capture="environment" onchange="handleImgUpload(event)"/>
+      <div class="upload-prompt" id="uploadPrompt">
+        <div class="up-icon">🌿</div>
+        <div class="up-title">Tap to take a photo or choose from gallery</div>
+        <div class="up-sub">Point camera at the affected leaf, stem, or fruit</div>
+        <div class="up-formats">JPG · PNG · WEBP supported</div>
+      </div>
+      <img id="imgPreview" alt="Uploaded crop photo"/>
+      <div class="img-overlay"><div class="img-overlay-txt">📷 Photo uploaded — ready to analyse</div></div>
+      <button class="img-change-btn" onclick="changePhoto(event)">Change Photo</button>
+    </div>
+
+    <!-- Photo tips -->
+    <div id="photoTips" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;color:var(--muted);">✅ Good lighting</div>
+      <div style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;color:var(--muted);">✅ Show the damaged area clearly</div>
+      <div style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;color:var(--muted);">✅ Steady shot, not blurry</div>
+    </div>
+
+    <div class="form-grid">
+      <div class="fg">
+        <label>What crop is this? *</label>
+        <select id="d-crop">
+          <option value="">— Select your crop —</option>
+          <optgroup label="Food Grains">
+            <option>Paddy / Rice</option><option>Wheat</option><option>Maize</option>
+            <option>Jowar / Sorghum</option><option>Bajra / Pearl Millet</option>
+            <option>Ragi / Finger Millet</option>
+          </optgroup>
+          <optgroup label="Pulses">
+            <option>Green Gram</option><option>Black Gram</option>
+            <option>Red Gram / Pigeonpea</option><option>Chickpea</option>
+            <option>Cowpea</option><option>Horse Gram</option>
+          </optgroup>
+          <optgroup label="Oilseeds">
+            <option>Groundnut</option><option>Mustard</option>
+            <option>Sunflower</option><option>Sesame / Gingelly</option><option>Castor</option>
+          </optgroup>
+          <optgroup label="Vegetables">
+            <option>Tomato</option><option>Brinjal</option><option>Okra / Bhendi</option>
+            <option>Onion</option><option>Chilli</option><option>Potato</option>
+            <option>Cauliflower</option><option>Cabbage</option><option>Beans</option>
+            <option>Bitter Gourd</option><option>Bottle Gourd</option>
+            <option>Cucumber</option><option>Tapioca</option>
+          </optgroup>
+          <optgroup label="Fruits">
+            <option>Banana</option><option>Mango</option><option>Coconut</option>
+            <option>Papaya</option><option>Guava</option><option>Pomegranate</option>
+            <option>Citrus / Lime</option><option>Jackfruit</option>
+            <option>Grapes</option><option>Watermelon</option>
+          </optgroup>
+          <optgroup label="Commercial Crops">
+            <option>Sugarcane</option><option>Cotton</option>
+            <option>Coffee</option><option>Cashew</option><option>Arecanut</option>
+          </optgroup>
+          <optgroup label="Spices">
+            <option>Turmeric</option><option>Ginger</option><option>Garlic</option>
+            <option>Pepper</option><option>Cardamom</option>
+          </optgroup>
+          <optgroup label="Medicinal Plants">
+            <option>Aloe Vera</option><option>Lemongrass</option>
+            <option>Gloriosa Superba</option><option>Senna</option><option>Coleus</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fg">
+        <label>How old is your crop? (days)</label>
+        <input type="number" id="d-age" placeholder="e.g. 45" min="1" max="365"/>
+      </div>
+      <div class="fg">
+        <label>Your district</label>
+        <input type="text" id="d-loc" placeholder="e.g. Villupuram"/>
+      </div>
+      <div class="fg">
+        <label>Recent heavy rainfall?</label>
+        <div class="tog-group" id="tg-rain">
+          <div class="tog-opt sel" data-val="yes">Yes ☔</div>
+          <div class="tog-opt" data-val="no">No ☀️</div>
+        </div>
+      </div>
+      <div class="fg full">
+        <label>What do you see on the plant?</label>
+        <div class="tog-group" id="tg-symptom">
+          <div class="tog-opt sel" data-val="spots">Brown/Dark Spots</div>
+          <div class="tog-opt" data-val="yellow">Yellowing</div>
+          <div class="tog-opt" data-val="wilt">Wilting</div>
+          <div class="tog-opt" data-val="insects">Insects Visible</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" onclick="analyseDisease()" id="analyseBtn">🔍 Analyse My Crop</button>
+      <div style="font-size:.76rem;color:var(--muted);align-self:center;">Photo gives more accurate results</div>
+    </div>
+
+    <!-- AI loading state -->
+    <div class="ai-analysing" id="aiAnalysing">
+      <div class="ai-spin"></div>
+      <p>AI is reading your crop photo…</p>
+      <small>Gemini Vision is analysing the image against ICAR disease database. This takes 5–10 seconds.</small>
+    </div>
+
+    <!-- AI follow-up conversation after image analysis -->
+    <div id="image-chat-section" style="display:none;margin-top:1.2rem;">
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:.6rem;">AI DIAGNOSIS — FOLLOW-UP CONVERSATION</div>
+      <div class="chat-win" id="imgChatWin" style="height:280px;"></div>
+      <div class="chat-typing" id="imgChatTyping">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+        <span>Analysing…</span>
+      </div>
+      <div class="chat-inp-row" style="margin-top:.6rem;">
+        <input type="text" id="imgChatInp" placeholder="Reply to the AI question…" onkeydown="if(event.key==='Enter')sendImgChat()"/>
+        <button class="send-btn" onclick="sendImgChat()">Reply →</button>
+      </div>
+      <div class="source-badge" style="margin-top:.6rem;">✓ Analysis powered by Gemini Vision · ICAR Disease Knowledge Base</div>
+    </div>
+
+    <!-- Fallback output (used when no API key yet) -->
+    <div id="disease-output" class="output-area">
+      <div class="output-hdr">ANALYSIS RESULT</div>
+      <div class="result-block">
+        <h4>Detected Problem</h4>
+        <div class="disease-name" id="r-disease">—</div>
+        <div id="r-risk"></div>
+        <div class="source-badge">✓ ICAR · Government of India Verified</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
+        <div class="result-block">
+          <h4>Why This Happened</h4>
+          <p id="r-cause">—</p>
+        </div>
+        <div class="result-block">
+          <h4>What To Do Now</h4>
+          <p id="r-action">—</p>
+        </div>
+      </div>
+      <div class="result-block">
+        <h4>Follow-up</h4>
+        <p id="r-followup">—</p>
+        <div class="btn-row">
+          <div class="confirm-tick" id="r-reminder"></div>
+          <button class="btn-secondary" onclick="reportToAdmin()" id="report-btn">📢 Report to Region</button>
+          <button class="btn-secondary" onclick="go('pest',qn('pest'))" id="trigger-pest-btn" style="background:var(--danger-bg);border-color:var(--danger);color:var(--danger);">🚨 Trigger Pest Control</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PEST CONTROL TRIGGER ── -->
+<section class="section" id="sec-pest">
+  <div class="page-hdr">
+    <h1>Automated Pest Control 🚨</h1>
+    <p>Tell us what you see. We'll trigger the right action, schedule it, and follow up automatically.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">🐛 What Are You Seeing?</div>
+    <div class="form-grid">
+      <div class="fg">
+        <label>Your crop</label>
+        <select id="p-crop">
+          <option value="">— Select —</option>
+          <option>Paddy / Rice</option><option>Wheat</option><option>Maize</option>
+          <option>Banana</option><option>Coconut</option><option>Tomato</option>
+          <option>Sugarcane</option><option>Cotton</option><option>Groundnut</option>
+          <option>Onion</option><option>Chilli</option><option>Brinjal</option>
+          <option>Okra / Bhendi</option><option>Cauliflower</option><option>Cabbage</option>
+          <option>Beans</option><option>Bitter Gourd</option><option>Tapioca</option>
+          <option>Mango</option><option>Guava</option><option>Pomegranate</option>
+          <option>Turmeric</option><option>Ginger</option><option>Green Gram</option>
+          <option>Black Gram</option><option>Red Gram / Pigeonpea</option>
+          <option>Chickpea</option><option>Sunflower</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Pest activity level</label>
+        <div class="tog-group" id="tg-pest-level">
+          <div class="tog-opt" data-val="mild">Mild</div>
+          <div class="tog-opt sel" data-val="moderate">Moderate</div>
+          <div class="tog-opt" data-val="severe">Severe</div>
+        </div>
+      </div>
+      <div class="fg full">
+        <label>What are you seeing? (select all that apply)</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.2rem;" id="pest-symptoms">
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="holes"/> Holes in leaves / stems
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="insects"/> Visible insects or larvae
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="sticky"/> Sticky / honeydew residue
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="wilting"/> Wilting or dying shoots
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="web"/> Web or silk threads
+          </label>
+          <label style="display:flex;align-items:center;gap:.5rem;font-size:.86rem;text-transform:none;letter-spacing:0;font-weight:500;cursor:pointer;padding:.5rem;background:var(--cream);border-radius:8px;border:1.5px solid var(--border);">
+            <input type="checkbox" value="discolouration"/> Yellowing / discolouration
+          </label>
+        </div>
+      </div>
+      <div class="fg">
+        <label>How many plants affected?</label>
+        <div class="tog-group" id="tg-spread">
+          <div class="tog-opt sel" data-val="few">Few (1–5)</div>
+          <div class="tog-opt" data-val="patch">A patch</div>
+          <div class="tog-opt" data-val="field">Whole field</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Your district</label>
+        <input type="text" id="p-district" placeholder="e.g. Thanjavur"/>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="triggerPestControl()">🚨 Trigger Pest Control Plan</button>
+    </div>
+
+    <div id="pest-output" class="output-area">
+      <div class="output-hdr">AUTOMATED PEST CONTROL TRIGGERED</div>
+      <div class="pest-trigger-card">
+        <h4 id="pt-pest-name">—</h4>
+        <p id="pt-description">—</p>
+        <div class="trigger-steps" id="pt-steps"></div>
+        <div class="trigger-active">
+          <div class="pulse-dot"></div>
+          <span id="pt-status">Monitoring active — FarmSense will check back in 3 days</span>
+        </div>
+      </div>
+      <div class="result-block" style="margin-top:1rem;">
+        <h4>Recommended Chemical / Treatment</h4>
+        <p id="pt-chemical">—</p>
+        <div class="source-badge" style="margin-top:.4rem;">✓ ICAR · Central IPM Centre Recommended</div>
+      </div>
+      <div class="result-block">
+        <h4>Safety Precautions</h4>
+        <p id="pt-safety">—</p>
+      </div>
+      <div class="btn-row">
+        <div class="confirm-tick">✅ <span id="pt-schedule-txt">Spray reminder set for tomorrow 6:00 AM</span></div>
+        <button class="btn-secondary" onclick="reportPestToAdmin()" id="pest-report-btn">📢 Alert Region</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── IRRIGATION ── -->
+<section class="section" id="sec-irrigation">
+  <div class="page-hdr">
+    <h1>Irrigation Planner 💧</h1>
+    <p>Tell us your field situation. We'll plan exactly when and how much to water.</p>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Crop type</label>
+        <select id="i-crop">
+          <option value="">— Select crop —</option>
+          <option>Paddy / Rice</option><option>Wheat</option><option>Maize</option>
+          <option>Banana</option><option>Coconut</option><option>Tomato</option>
+          <option>Sugarcane</option><option>Cotton</option><option>Groundnut</option>
+          <option>Green Gram</option><option>Black Gram</option><option>Red Gram / Pigeonpea</option>
+          <option>Onion</option><option>Chilli</option><option>Brinjal</option>
+          <option>Okra / Bhendi</option><option>Cauliflower</option><option>Tapioca</option>
+          <option>Turmeric</option><option>Ginger</option><option>Sunflower</option>
+          <option>Mustard</option><option>Castor</option><option>Mango</option>
+          <option>Guava</option><option>Pomegranate</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Growth stage</label>
+        <select id="i-stage">
+          <option value="seedling">Seedling (0–30 days)</option>
+          <option value="vegetative">Vegetative (30–60 days)</option>
+          <option value="flowering" selected>Flowering (60–90 days)</option>
+          <option value="maturity">Maturity (90+ days)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Current water level in your field</label>
+        <div class="tog-group" id="tg-water">
+          <div class="tog-opt" data-val="low">Low 🏜️</div>
+          <div class="tog-opt sel" data-val="medium">Medium 💧</div>
+          <div class="tog-opt" data-val="high">High 🌊</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Last time you irrigated</label>
+        <select id="i-last">
+          <option value="today">Today</option>
+          <option value="yesterday" selected>Yesterday</option>
+          <option value="2days">2 days ago</option>
+          <option value="3days">3+ days ago</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Soil feels like</label>
+        <div class="tog-group" id="tg-isoil">
+          <div class="tog-opt" data-val="dry">Dry 🌵</div>
+          <div class="tog-opt sel" data-val="moist">Moist 🌱</div>
+          <div class="tog-opt" data-val="wet">Wet 💦</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Land size (acres)</label>
+        <input type="number" id="i-acres" placeholder="e.g. 2.5" min="0.1" step="0.5" value="2.5"/>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="generateIrr()">💧 Generate My 7-Day Plan</button>
+    </div>
+    <div id="irr-output" class="output-area">
+      <div class="output-hdr">YOUR 7-DAY IRRIGATION SCHEDULE</div>
+      <div id="irr-rec" style="background:var(--paddy-bg);border:1px solid #c8e6d0;border-radius:10px;padding:.85rem 1rem;margin-bottom:.9rem;font-size:.86rem;color:var(--banyan);"></div>
+      <div class="irr-sched" id="irr-sched"></div>
+      <div style="margin-top:.75rem;font-size:.78rem;color:var(--muted);">💚 Estimated water saving vs average: <strong style="color:var(--paddy)" id="irr-save"></strong></div>
+      <div class="source-badge" style="margin-top:.5rem;">✓ Irrigation schedule based on ICAR crop water requirement data</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CHATBOT ── -->
+<section class="section" id="sec-chat">
+  <div class="page-hdr">
+    <h1>Ask FarmSense 💬</h1>
+    <p>Your farm expert. Ask in English, Hindi, or Tamil. One question at a time.</p>
+  </div>
+  <div class="card">
+
+    <!-- Language selector -->
+    <div class="lang-row">
+      <span class="lang-lbl">Language:</span>
+      <button class="lang-btn active" onclick="setLang('en',this)">🇬🇧 English</button>
+      <button class="lang-btn" onclick="setLang('hi',this)">🇮🇳 हिंदी</button>
+      <button class="lang-btn" onclick="setLang('ta',this)">🌿 தமிழ்</button>
+    </div>
+
+    <!-- Quick chips -->
+    <div class="quick-chips" id="quickChips">
+      <div class="chip" onclick="chipSend(this)">🌾 Why are my leaves yellow?</div>
+      <div class="chip" onclick="chipSend(this)">💧 How much water for paddy?</div>
+      <div class="chip" onclick="chipSend(this)">🐛 How to control stem borer?</div>
+      <div class="chip" onclick="chipSend(this)">💰 PM-Kisan scheme details</div>
+      <div class="chip" onclick="chipSend(this)">🌿 Best fertilizer for tomato?</div>
+    </div>
+
+    <div class="chat-win" id="chatWin">
+      <div class="msg bot" id="welcomeMsg">
+        Hello! 👋 I'm FarmSense AI, your personal farm advisor.<br/><br/>
+        Ask me anything about your crop — disease, fertilizer, irrigation, pests, government schemes, or market prices.<br/><br/>
+        I will ask follow-up questions to give you exact, personalised advice.
+        <div class="msg-src">✓ FarmSense AI · ICAR &amp; Government of India Knowledge Base</div>
+      </div>
+    </div>
+
+    <div class="chat-typing" id="chatTyping">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      <span id="typingTxt">FarmSense is thinking…</span>
+    </div>
+
+    <div class="chat-error" id="chatError">
+      Could not reach AI. Check your internet connection and try again.
+    </div>
+
+    <div class="chat-inp-row">
+      <input type="text" id="chatInp"
+        placeholder="Type in English, Hindi, or Tamil…"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey)sendChat()"/>
+      <div class="mic-btn" id="micBtn" title="Voice input" onclick="startVoice()">🎤</div>
+      <button class="send-btn" id="sendBtn" onclick="sendChat()">Send →</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.6rem;">
+      <p style="font-size:.72rem;color:var(--muted);">
+        💡 <span id="chatHint">Try: "My paddy leaves have brown spots" · "Stem borer control" · "PM-Kisan registration"</span>
+      </p>
+      <button onclick="clearChat()" style="font-size:.72rem;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Noto Sans',sans-serif;">Clear chat</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── YIELD & PROFIT ── -->
+<section class="section" id="sec-yield">
+  <div class="page-hdr">
+    <h1>Yield &amp; Profit Estimate 📈</h1>
+    <p>Tell us your situation. We'll estimate what this season could earn you.</p>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Crop type</label>
+        <select id="y-crop">
+          <option>Paddy / Rice</option><option>Wheat</option><option>Maize</option>
+          <option>Banana</option><option>Coconut</option><option>Tomato</option>
+          <option>Sugarcane</option><option>Cotton</option><option>Groundnut</option>
+          <option>Green Gram</option><option>Black Gram</option><option>Red Gram / Pigeonpea</option>
+          <option>Onion</option><option>Chilli</option><option>Brinjal</option>
+          <option>Okra / Bhendi</option><option>Cauliflower</option><option>Sunflower</option>
+          <option>Turmeric</option><option>Ginger</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Land size (acres)</label>
+        <input type="number" id="y-acres" placeholder="e.g. 2.5" min="0.1" step="0.1" value="2.5"/>
+      </div>
+      <div class="fg">
+        <label>How does your crop look right now?</label>
+        <div class="tog-group" id="tg-cond">
+          <div class="tog-opt sel" data-val="healthy">Healthy ✅</div>
+          <div class="tog-opt" data-val="moderate">Moderate ⚠️</div>
+          <div class="tog-opt" data-val="poor">Poor ❌</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Disease detected this season?</label>
+        <div class="tog-group" id="tg-ydis">
+          <div class="tog-opt" data-val="yes">Yes</div>
+          <div class="tog-opt sel" data-val="no">No</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Total money spent so far (₹)</label>
+        <input type="number" id="y-cost" placeholder="Seeds + fertilizer + water" value="18000"/>
+      </div>
+      <div class="fg">
+        <label>Expected harvest</label>
+        <select id="y-harvest">
+          <option>April 2026</option><option>May 2026</option>
+          <option>June 2026</option><option>October 2026</option>
+          <option>December 2026</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="calcYield()">📈 Predict My Yield &amp; Profit</button>
+    </div>
+    <div id="yield-output" class="output-area">
+      <div class="output-hdr">SEASON ESTIMATE</div>
+      <div class="yield-grid">
+        <div class="yield-card"><div class="yc-lbl">Expected Yield</div><div class="yc-val" id="y-yield">—</div></div>
+        <div class="yield-card"><div class="yc-lbl">Market Price</div><div class="yc-val" id="y-price">—</div></div>
+        <div class="yield-card profit"><div class="yc-lbl">Estimated Profit</div><div class="yc-val" id="y-profit">—</div></div>
+      </div>
+      <div id="y-tip" style="margin-top:.9rem;background:var(--gold-bg);border:1px solid #f0c070;border-radius:10px;padding:.85rem 1rem;font-size:.86rem;color:#7a4a10;"></div>
+      <div class="source-badge" style="margin-top:.5rem;">✓ Market data from Agmarknet · NAFED · TNAU Agribusiness</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CROP ROTATION ── -->
+<section class="section" id="sec-rotation">
+  <div class="page-hdr">
+    <h1>Crop Rotation Planner 🔄</h1>
+    <p>Plan your next season now. Right rotation means better yield and lower cost.</p>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Current or last crop</label>
+        <select id="r-current">
+          <option value="rice">Paddy / Rice</option><option value="wheat">Wheat</option>
+          <option value="maize">Maize</option><option value="banana">Banana</option>
+          <option value="coconut">Coconut</option><option value="tomato">Tomato</option>
+          <option value="sugarcane">Sugarcane</option><option value="cotton">Cotton</option>
+          <option value="groundnut">Groundnut</option><option value="greengram">Green Gram</option>
+          <option value="blackgram">Black Gram</option><option value="pigeonpea">Red Gram / Pigeonpea</option>
+          <option value="onion">Onion</option><option value="chilli">Chilli</option>
+          <option value="brinjal">Brinjal</option><option value="okra">Okra / Bhendi</option>
+          <option value="sunflower">Sunflower</option><option value="turmeric">Turmeric</option>
+          <option value="ginger">Ginger</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Expected harvest month</label>
+        <select id="r-harvest">
+          <option>April 2026</option><option>May 2026</option>
+          <option>June 2026</option><option>October 2026</option><option>December 2026</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>How does soil look after harvest?</label>
+        <div class="tog-group" id="tg-rsoil">
+          <div class="tog-opt sel" data-val="good">Good 🟢</div>
+          <div class="tog-opt" data-val="average">Average 🟡</div>
+          <div class="tog-opt" data-val="poor">Poor 🔴</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Water availability next season</label>
+        <div class="tog-group" id="tg-rwater">
+          <div class="tog-opt" data-val="low">Low</div>
+          <div class="tog-opt sel" data-val="medium">Medium</div>
+          <div class="tog-opt" data-val="high">High</div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="planRotation()">🌱 Plan My Next Season</button>
+    </div>
+    <div id="rot-output" class="output-area">
+      <div class="output-hdr">RECOMMENDED NEXT CROP</div>
+      <div class="rot-result">
+        <div class="rot-icon" id="rot-icon">🌿</div>
+        <div class="rot-info">
+          <h3 id="rot-name">—</h3>
+          <p id="rot-why">—</p>
+          <div class="rot-tags" id="rot-tags"></div>
+          <div style="margin-top:.75rem;font-size:.84rem;">💰 Estimated profit: <strong style="color:var(--paddy);font-family:'DM Mono'" id="rot-profit">—</strong></div>
+        </div>
+      </div>
+      <div class="source-badge" style="margin-top:.9rem;">✓ ICAR Crop Rotation Guidelines · Soil Health Management</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FARM HEALTH ── -->
+<section class="section" id="sec-health">
+  <div class="page-hdr">
+    <h1>Farm Health Score 🏥</h1>
+    <p>Tell us what you observe on your farm this week. We calculate your health score.</p>
+  </div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Water availability this week</label>
+        <div class="tog-group" id="tg-hw">
+          <div class="tog-opt" data-val="low">Low</div>
+          <div class="tog-opt sel" data-val="medium">Medium</div>
+          <div class="tog-opt" data-val="high">High</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Pest activity you noticed</label>
+        <div class="tog-group" id="tg-hp">
+          <div class="tog-opt sel" data-val="none">None</div>
+          <div class="tog-opt" data-val="mild">Mild</div>
+          <div class="tog-opt" data-val="heavy">Heavy</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>How does the soil feel?</label>
+        <div class="tog-group" id="tg-hs">
+          <div class="tog-opt sel" data-val="soft">Soft 🟢</div>
+          <div class="tog-opt" data-val="normal">Normal 🟡</div>
+          <div class="tog-opt" data-val="hard">Hard/Dry 🔴</div>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Visible crop damage?</label>
+        <div class="tog-group" id="tg-hd">
+          <div class="tog-opt sel" data-val="no">No ✅</div>
+          <div class="tog-opt" data-val="some">Some ⚠️</div>
+          <div class="tog-opt" data-val="heavy">Heavy ❌</div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="calcHealth()">🏥 Calculate Farm Health</button>
+    </div>
+    <div id="health-output" class="output-area">
+      <div class="output-hdr">YOUR FARM HEALTH REPORT</div>
+      <div class="gauge-wrap">
+        <div class="gauge-score" id="h-score">—</div>
+        <div class="gauge-lbl" id="h-status">—</div>
+      </div>
+      <div class="prog-row">
+        <div><div class="prog-info"><span>💧 Water Management</span><span id="h-w-pct">—</span></div><div class="prog-bg"><div class="prog-fill" id="h-w-bar" style="width:0"></div></div></div>
+        <div><div class="prog-info"><span>🐛 Pest Control</span><span id="h-p-pct">—</span></div><div class="prog-bg"><div class="prog-fill" id="h-p-bar" style="width:0"></div></div></div>
+        <div><div class="prog-info"><span>🌱 Soil Condition</span><span id="h-s-pct">—</span></div><div class="prog-bg"><div class="prog-fill" id="h-s-bar" style="width:0"></div></div></div>
+        <div><div class="prog-info"><span>🌾 Crop Health</span><span id="h-c-pct">—</span></div><div class="prog-bg"><div class="prog-fill" id="h-c-bar" style="width:0"></div></div></div>
+      </div>
+      <div id="h-advice" style="margin-top:1rem;background:var(--cream);border-radius:10px;padding:.85rem 1rem;font-size:.86rem;line-height:1.65;"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+// ─── PROFILE ───
+let farmer = {name:'Farmer',district:'your district',crop:'your crop',acres:2.5};
+window.addEventListener('DOMContentLoaded',()=>{
+  const p=JSON.parse(localStorage.getItem('fs_current_farmer')||'null');
+  if(!p){window.location.href='farmer-login.html';return;}
+  farmer=p;
+
+  // Sidebar — show farmer name and details
+  document.getElementById('sb-name').textContent='🌾 '+p.name+"'s Farm";
+  document.getElementById('sb-meta').textContent='📍 '+p.district+(p.state?', '+p.state:'')+' · '+p.crop+' · '+p.acres+' acres';
+  document.getElementById('weatherChip').textContent='🌤️ '+p.district+' · 31°C';
+
+  // Welcome greeting — uses farmer's actual registered name
+  const h=new Date().getHours();
+  const greeting=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('greet').textContent=greeting+', '+p.name+' 🌾';
+  document.getElementById('greet-sub').textContent="Here's how your farm in "+p.district+' is doing today';
+
+  // Pre-fill crop fields with farmer's registered crop
+  const dc=document.getElementById('d-crop');
+  if(dc&&p.crop){for(let o of dc.options){if(o.text===p.crop){o.selected=true;break;}}}
+  const ic=document.getElementById('i-crop');
+  if(ic&&p.crop){for(let o of ic.options){if(o.text===p.crop){o.selected=true;break;}}}
+  const dl=document.getElementById('d-loc');
+  if(dl)dl.value=p.district;
+  const pd=document.getElementById('p-district');
+  if(pd)pd.value=p.district;
+  const ya=document.getElementById('y-acres');
+  if(ya)ya.value=p.acres;
+});
+
+// ─── NAV ───
+const titles={overview:'Overview',disease:'Detect Disease',pest:'Pest Control',irrigation:'Irrigation Plan',chat:'Ask FarmSense',yield:'Yield & Profit',rotation:'Crop Rotation',health:'Farm Health'};
+function go(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  document.getElementById('pageTitle').textContent=titles[id]||id;
+  closeSB(); window.scrollTo(0,0);
+}
+function qn(id){return document.querySelector('.nav-item[onclick*="\''+id+'\'"]');}
+function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('on');}
+function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('on');}
+
+// ─── TOGGLES ───
+document.addEventListener('click',e=>{
+  const opt=e.target.closest('.tog-opt');
+  if(!opt)return;
+  opt.closest('.tog-group').querySelectorAll('.tog-opt').forEach(o=>o.classList.remove('sel','sel-amber','sel-danger'));
+  opt.classList.add('sel');
+});
+function togVal(groupId){
+  const s=document.querySelector('#'+groupId+' .tog-opt.sel');
+  return s?s.dataset.val:null;
+}
+
+// ─── IMAGE UPLOAD + GEMINI ANALYSIS ───
+let uploadedImageBase64 = null;
+let uploadedImageMime = 'image/jpeg';
+let imgConversationHistory = [];
+
+function handleImgUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  uploadedImageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    uploadedImageBase64 = dataUrl.split(',')[1];
+    const preview = document.getElementById('imgPreview');
+    const prompt = document.getElementById('uploadPrompt');
+    const zone = document.getElementById('imgUploadZone');
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    prompt.style.display = 'none';
+    zone.classList.add('has-img');
+  };
+  reader.readAsDataURL(file);
+}
+
+function changePhoto(e) {
+  e.stopPropagation();
+  uploadedImageBase64 = null;
+  const preview = document.getElementById('imgPreview');
+  const prompt = document.getElementById('uploadPrompt');
+  const zone = document.getElementById('imgUploadZone');
+  preview.style.display = 'none';
+  preview.src = '';
+  prompt.style.display = 'flex';
+  zone.classList.remove('has-img');
+  document.getElementById('imgFile').value = '';
+  document.getElementById('image-chat-section').style.display = 'none';
+  document.getElementById('disease-output').classList.remove('vis');
+  imgConversationHistory = [];
+}
+
+async function analyseDisease() {
+  const crop = document.getElementById('d-crop').value;
+  const age  = document.getElementById('d-age').value;
+  const loc  = document.getElementById('d-loc').value || farmer.district;
+  const rain = togVal('tg-rain') || 'yes';
+  const symptom = togVal('tg-symptom') || 'spots';
+  const hasImage = !!uploadedImageBase64;
+
+  if (hasImage) {
+    document.getElementById('analyseBtn').disabled = true;
+    document.getElementById('aiAnalysing').classList.add('vis');
+    imgConversationHistory = [];
+    try {
+      const res = await fetch('/api/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: uploadedImageBase64, mimeType: uploadedImageMime, crop, age, district: loc, symptoms: symptom })
+      });
+      document.getElementById('aiAnalysing').classList.remove('vis');
+      document.getElementById('analyseBtn').disabled = false;
+      if (!res.ok) throw new Error('API error ' + res.status);
+      const data = await res.json();
+      const reply = data.reply || 'Could not analyse. Please try again.';
+      document.getElementById('image-chat-section').style.display = 'block';
+      const win = document.getElementById('imgChatWin');
+      win.innerHTML = '';
+      appendImgMsg(reply, 'bot');
+      imgConversationHistory.push({ role: 'assistant', content: reply });
+      win.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      saveReport({ farmer: farmer.name, district: loc, crop: crop || 'Unknown', disease: 'AI Image Analysis', risk: 'medium', date: new Date().toLocaleDateString('en-IN'), status: 'Pending', reported: false });
+    } catch (err) {
+      document.getElementById('aiAnalysing').classList.remove('vis');
+      document.getElementById('analyseBtn').disabled = false;
+      runLocalDiseaseAnalysis(crop, rain, symptom, loc);
+    }
+  } else {
+    runLocalDiseaseAnalysis(crop, rain, symptom, loc);
+  }
+}
+
+async function sendImgChat() {
+  const inp = document.getElementById('imgChatInp');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  appendImgMsg(msg, 'user');
+  imgConversationHistory.push({ role: 'user', content: msg });
+  const typing = document.getElementById('imgChatTyping');
+  typing.style.display = 'flex';
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: imgConversationHistory,
+        systemPrompt: `You are FarmSense AI — an expert Indian agricultural advisor. You already analysed a crop image. Continue the diagnostic conversation asking ONE follow-up question at a time. Once diagnosis is confirmed, give full treatment: chemical name, exact dose, total quantity for farmer acreage, cost estimate in rupees, brand names available in India. Cite ICAR or TNAU. Use simple English.`
+      })
+    });
+    typing.style.display = 'none';
+    if (!res.ok) throw new Error('error');
+    const data = await res.json();
+    const reply = data.reply || '...';
+    appendImgMsg(reply, 'bot');
+    imgConversationHistory.push({ role: 'assistant', content: reply });
+  } catch {
+    typing.style.display = 'none';
+    appendImgMsg('Network error. Check your connection and try again.', 'bot');
+  }
+}
+
+function appendImgMsg(text, type) {
+  const win = document.getElementById('imgChatWin');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = text.replace(/\n/g,'<br/>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+}
+
+// ─── DISEASE DB (local fallback) ───
+const DDB={
+  'Paddy / Rice':{
+    spots_yes:{name:'Rice Blast',risk:'high',cause:'Excess moisture creates ideal conditions for blast fungus. Diamond-shaped grey-brown spots with brown borders.',action:'Apply Tricyclazole 75WP at 6g per 10L. Spray before 8am. No urea for 15 days.',followup:'Monitor 7 days. Switch to Propiconazole 25EC at 1ml/L if new spots appear.'},
+    spots_no:{name:'Brown Spot',risk:'medium',cause:'Potassium deficiency weakens plant cells. Common in poor soils.',action:'Apply Mancozeb 75WP at 25g/10L. Apply MOP at 20kg/acre.',followup:'Results in 10 days.'},
+    yellow_yes:{name:'Bacterial Leaf Blight',risk:'high',cause:'Bacteria enter through water pores in warm rainy weather.',action:'Apply Copper Oxychloride 50WP at 30g/10L. Drain stagnant water.',followup:'Drain and reflood after 3 days.'},
+    yellow_no:{name:'Nitrogen Deficiency',risk:'low',cause:'Yellowing from older leaves indicates nitrogen shortage.',action:'Apply Urea at 25kg/acre, split over 2 applications.',followup:'Colour returns in 7-10 days.'},
+    wilt_yes:{name:'Stem Borer',risk:'high',cause:'Larvae bore into stems causing dead heart.',action:'Apply Chlorpyriphos 20EC at 2.5ml/L. Release Trichogramma parasitoids.',followup:'Cut stems and check for larvae.'},
+    insects_yes:{name:'Brown Planthopper',risk:'high',cause:'BPH sucks sap, causes hopperburn in waterlogged fields.',action:'Apply Buprofezin 25SC at 1ml/L. Drain field 3 days.',followup:'Can destroy field in 3-4 days. Alert agriculture officer.'},
+  },
+  'Tomato':{
+    wilt_yes:{name:'Yellow Leaf Curl Virus',risk:'high',cause:'Whitefly transmits virus. Leaves curl upward.',action:'Apply Imidacloprid 0.5ml/L. Remove infected plants.',followup:'No cure. Use resistant varieties next season.'},
+    spots_yes:{name:'Early Blight',risk:'medium',cause:'Alternaria fungus, worse in humid weather.',action:'Apply Mancozeb 75WP at 25g/10L. Remove lower leaves.',followup:'Spray every 10-14 days.'},
+    insects_yes:{name:'Fruit Borer',risk:'high',cause:'Larvae bore into fruits, 60% loss possible.',action:'Apply Spinosad 45SC at 0.3ml/L. Pheromone traps at 5/acre.',followup:'Destroy bored fruits.'},
+  },
+  'Banana':{
+    yellow_yes:{name:'Sigatoka Leaf Spot',risk:'high',cause:'Fungal infection in wet weather.',action:'Apply Propiconazole 25EC at 1ml/L. Remove infected leaves.',followup:'Inspect weekly.'},
+    wilt_yes:{name:'Fusarium Wilt',risk:'high',cause:'Soil-borne Fusarium, no cure once established.',action:'Remove plants. Apply Trichoderma viride. Notify department.',followup:'No banana for 2 seasons in same plot.'},
+  },
+  'Coconut':{
+    insects_yes:{name:'Rugose Spiralling Whitefly',risk:'medium',cause:'Whitefly causes sooty mould.',action:'Release Encarsia parasitoids. No broad-spectrum pesticides.',followup:'4-6 weeks for biological control.'},
+    wilt_yes:{name:'Tanjore Wilt',risk:'high',cause:'Ganoderma fungus in waterlogged soil.',action:'Apply Trichoderma harzianum. Drain soil.',followup:'Report to agriculture officer.'},
+  },
+};
+const fallbackDisease={
+  spots:{name:'Fungal Leaf Spot',risk:'medium',cause:'Fungal pathogen triggered by humidity.',action:'Apply Mancozeb 75WP at 25g/10L. Remove infected leaves.',followup:'Inspect after 10 days.'},
+  yellow:{name:'Chlorosis / Nutrient Deficiency',risk:'low',cause:'Nitrogen or iron deficiency.',action:'Apply balanced NPK. Ferrous sulphate 0.5% for iron deficiency.',followup:'Test soil if persists after 10 days.'},
+  wilt:{name:'Vascular Wilt',risk:'high',cause:'Soil-borne pathogen blocking water transport.',action:'Carbendazim 1g/L soil drench. Remove wilted plants.',followup:'Soil solarisation before next season.'},
+  insects:{name:'Sucking Pest',risk:'medium',cause:'Aphids/thrips/whitefly. Sticky residue and distorted growth.',action:'Imidacloprid 17.8SL at 0.5ml/L on leaf undersides.',followup:'Monitor weekly.'},
+};
+
+function runLocalDiseaseAnalysis(crop, rain, symptom, loc) {
+  if (!crop) { alert('Please select your crop to get advice.'); return; }
+  const key = symptom + '_' + rain;
+  const cropDB = DDB[crop];
+  let data = cropDB?.[key] || cropDB?.[symptom+'_yes'] || cropDB?.[symptom+'_no'] || fallbackDisease[symptom] || fallbackDisease.spots;
+  document.getElementById('r-disease').textContent = data.name;
+  document.getElementById('r-cause').textContent = data.cause;
+  document.getElementById('r-action').textContent = data.action;
+  document.getElementById('r-followup').textContent = data.followup;
+  const rp = document.getElementById('r-risk');
+  const rc = data.risk==='high'?'rp-h':data.risk==='medium'?'rp-m':'rp-l';
+  rp.innerHTML = `<span class="result-pill ${rc}">${data.risk==='high'?'🔴 High Risk':data.risk==='medium'?'🟠 Medium Risk':'🟢 Low Risk'}</span>`;
+  document.getElementById('r-reminder').innerHTML = '✅ Spray reminder set for tomorrow 6:00 AM';
+  saveReport({ farmer: farmer.name, district: loc, crop, disease: data.name, risk: data.risk, date: new Date().toLocaleDateString('en-IN'), status: 'Pending', reported: false });
+  const out = document.getElementById('disease-output');
+  out.classList.add('vis');
+  out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ─── CHATBOT (GROQ + MULTILINGUAL) ───
+let chatHistory = [];
+let currentLang = 'en';
+
+const langConfig = {
+  en: {
+    welcome: `Hello! 👋 I'm FarmSense AI, your personal farm advisor.<br/><br/>Ask me anything about your crop — disease, fertilizer, irrigation, pests, government schemes, or market prices.<br/><br/>I will ask follow-up questions to give you exact, personalised advice.`,
+    placeholder: 'Type in English…',
+    thinking: 'FarmSense is thinking…',
+    hints: 'Try: "My paddy leaves have brown spots" · "Stem borer control" · "PM-Kisan registration"',
+    chips: ['🌾 Why are my leaves yellow?','💧 How much water for paddy?','🐛 How to control stem borer?','💰 PM-Kisan scheme details','🌿 Best fertilizer for tomato?'],
+    systemPrompt: `You are FarmSense AI — an expert agricultural advisor for Indian farmers trained on ICAR, TNAU, and Government of India crop advisory data.
+
+STRICT RULES:
+1. Ask ONLY ONE follow-up question at a time. Never ask two questions in one message.
+2. Collect these 5 things before giving final treatment advice in this order: crop name, crop age in days, exact symptom, recent weather (heavy rain/dry/humid), land size in acres.
+3. Once you have all 5 give: problem name, cause in simple language, chemical name + exact dose per litre, total quantity for their acreage, approximate cost in rupees, brand names available in India, follow-up date, source ICAR or TNAU.
+4. Only answer farming questions. Say I can only help with farming questions for anything else.
+5. Use simple clear English. Never recommend banned pesticides in India.`
+  },
+  hi: {
+    welcome: `नमस्ते! 👋 मैं FarmSense AI हूँ — आपका खेती सलाहकार।<br/><br/>मुझसे कुछ भी पूछें — फसल की बीमारी, खाद, सिंचाई, कीड़े, सरकारी योजनाएं, या बाजार भाव।<br/><br/>मैं एक-एक सवाल पूछकर आपकी फसल के लिए सटीक सलाह दूँगा।`,
+    placeholder: 'हिंदी में लिखें…',
+    thinking: 'FarmSense सोच रहा है…',
+    hints: 'कोशिश करें: "मेरी धान की पत्तियाँ पीली हो रही हैं" · "तना छेदक कैसे रोकें?"',
+    chips: ['🌾 पत्तियाँ पीली क्यों हो रही हैं?','💧 धान को कितना पानी दें?','🐛 तना छेदक से कैसे बचाएं?','💰 PM-किसान की जानकारी','🌿 टमाटर के लिए सबसे अच्छी खाद?'],
+    systemPrompt: `आप FarmSense AI हैं — भारतीय किसानों के लिए एक विशेषज्ञ कृषि सलाहकार। ICAR, TNAU और भारत सरकार के कृषि दिशानिर्देशों पर प्रशिक्षित।
+
+नियम:
+1. एक बार में केवल एक सवाल पूछें।
+2. उपचार देने से पहले ये 5 बातें जानें: फसल का नाम, फसल की उम्र दिनों में, ठीक-ठीक लक्षण, हाल का मौसम, जमीन का आकार एकड़ में।
+3. सभी जानकारी मिलने के बाद: समस्या का नाम, कारण, दवा का नाम और मात्रा प्रति लीटर, कुल मात्रा, अनुमानित लागत, ब्रांड नाम, स्रोत ICAR या TNAU।
+4. केवल खेती के सवालों का जवाब दें।
+5. सरल हिंदी में बात करें। प्रतिबंधित कीटनाशक कभी न बताएं।
+हमेशा हिंदी में ही जवाब दें।`
+  },
+  ta: {
+    welcome: `வணக்கம்! 👋 நான் FarmSense AI — உங்கள் விவசாய ஆலோசகர்.<br/><br/>பயிர் நோய், உரம், நீர்ப்பாசனம், பூச்சிகள், அரசு திட்டங்கள் — எதுவும் கேளுங்கள்.<br/><br/>தனிப்பயனாக்கப்பட்ட ஆலோசனை தர ஒவ்வொரு முறையும் ஒரு கேள்வி கேட்பேன்.`,
+    placeholder: 'தமிழில் தட்டச்சு செய்யுங்கள்…',
+    thinking: 'FarmSense யோசிக்கிறது…',
+    hints: 'முயற்சிக்கவும்: "என் நெல் இலைகள் மஞ்சளாகின்றன" · "தண்டு துளைப்பான் கட்டுப்பாடு"',
+    chips: ['🌾 இலைகள் மஞ்சளாவது ஏன்?','💧 நெல்லுக்கு எவ்வளவு நீர்?','🐛 தண்டு துளைப்பான் கட்டுப்பாடு','💰 PM-கிசான் திட்டம்','🌿 தக்காளிக்கு சிறந்த உரம்?'],
+    systemPrompt: `நீங்கள் FarmSense AI — இந்திய விவசாயிகளுக்கான நிபுணர் வேளாண்மை ஆலோசகர். ICAR, TNAU மற்றும் இந்திய அரசின் வேளாண் வழிகாட்டுதல்களில் பயிற்றுவிக்கப்பட்டவர்.
+
+விதிகள்:
+1. ஒரு நேரத்தில் ஒரே ஒரு கேள்வி மட்டும் கேளுங்கள்.
+2. சிகிச்சை தருவதற்கு முன்: பயிர் பெயர், வயது, அறிகுறி, வானிலை, நில அளவு.
+3. அனைத்தும் தெரிந்த பின்: நோய் பெயர், காரணம், மருந்து அளவு, மொத்த அளவு, செலவு, பிராண்ட், ஆதாரம் ICAR அல்லது TNAU.
+4. வேளாண்மை கேள்விகளுக்கு மட்டுமே பதில் தரவும்.
+5. எளிய தமிழில் பேசவும். தடைசெய்யப்பட்ட கீடநாசினிகளை பரிந்துரைக்க வேண்டாம்.
+எப்போதும் தமிழிலேயே பதில் தரவும்.`
+  }
+};
+
+function setLang(lang, btn) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cfg = langConfig[lang];
+  document.getElementById('chatInp').placeholder = cfg.placeholder;
+  document.getElementById('typingTxt').textContent = cfg.thinking;
+  document.getElementById('chatHint').textContent = cfg.hints;
+  const chipsEl = document.getElementById('quickChips');
+  chipsEl.innerHTML = cfg.chips.map(c => `<div class="chip" onclick="chipSend(this)">${c}</div>`).join('');
+  const wm = document.getElementById('welcomeMsg');
+  if (wm) wm.innerHTML = cfg.welcome + `<div class="msg-src">✓ FarmSense AI · ICAR & Government of India</div>`;
+}
+
+function chipSend(el) {
+  document.getElementById('chatInp').value = el.textContent.replace(/^[\u{1F300}-\u{1FFFF}\u{2600}-\u{26FF}\s]+/u,'').trim();
+  sendChat();
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chatInp');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  appendChatMsg(msg, 'user');
+  chatHistory.push({ role: 'user', content: msg });
+  document.getElementById('quickChips').style.display = 'none';
+  const typing = document.getElementById('chatTyping');
+  typing.style.display = 'flex';
+  document.getElementById('chatError').style.display = 'none';
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory, systemPrompt: langConfig[currentLang].systemPrompt })
+    });
+    typing.style.display = 'none';
+    sendBtn.disabled = false;
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const reply = data.reply || '...';
+    appendChatMsg(reply, 'bot', 'FarmSense AI · ICAR Knowledge Base');
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch (err) {
+    typing.style.display = 'none';
+    sendBtn.disabled = false;
+    document.getElementById('chatError').style.display = 'block';
+    appendChatMsg('Could not reach the server. Check your internet connection. For urgent help call Kisan Call Centre: 1800-180-1551 (free, available in your local language).', 'bot', 'FarmSense Offline');
+    chatHistory.push({ role: 'assistant', content: 'Network error' });
+  }
+}
+
+function appendChatMsg(text, type, src) {
+  const win = document.getElementById('chatWin');
+  const div = document.createElement('div');
+  div.className = 'msg ' + type;
+  div.innerHTML = text.replace(/\n/g,'<br/>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  if (src && type === 'bot') {
+    const s = document.createElement('div'); s.className = 'msg-src'; s.textContent = '✓ ' + src; div.appendChild(s);
+  }
+  if (type === 'user') {
+    const t = document.createElement('div'); t.className = 'msg-time'; t.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}); div.appendChild(t);
+  }
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+}
+
+function startVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { alert('Voice input is not supported. Try Chrome.'); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = {en:'en-IN',hi:'hi-IN',ta:'ta-IN'}[currentLang] || 'en-IN';
+  rec.interimResults = false;
+  const btn = document.getElementById('micBtn');
+  btn.classList.add('recording');
+  rec.onresult = e => { document.getElementById('chatInp').value = e.results[0][0].transcript; btn.classList.remove('recording'); };
+  rec.onerror = () => btn.classList.remove('recording');
+  rec.onend = () => btn.classList.remove('recording');
+  rec.start();
+}
+
+function clearChat() {
+  chatHistory = [];
+  const win = document.getElementById('chatWin');
+  win.innerHTML = '';
+  document.getElementById('quickChips').style.display = 'flex';
+  const cfg = langConfig[currentLang];
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'welcomeMsg';
+  div.innerHTML = cfg.welcome + `<div class="msg-src">✓ FarmSense AI · ICAR & Government of India</div>`;
+  win.appendChild(div);
+}
+
+// ─── YIELD ───
+const yDB={
+  'Paddy / Rice':{base:3.2,price:22,unit:'tonnes',pu:'₹/kg'},
+  'Wheat':{base:3.0,price:20,unit:'tonnes',pu:'₹/kg'},
+  'Maize':{base:4.5,price:18,unit:'tonnes',pu:'₹/kg'},
+  'Banana':{base:10,price:14,unit:'tonnes',pu:'₹/kg'},
+  'Coconut':{base:5500,price:19,unit:'nuts',pu:'₹/nut'},
+  'Tomato':{base:8.0,price:22,unit:'tonnes',pu:'₹/kg'},
+  'Sugarcane':{base:40,price:3.1,unit:'tonnes',pu:'₹/kg'},
+  'Cotton':{base:2.0,price:55,unit:'tonnes',pu:'₹/kg'},
+  'Groundnut':{base:2.0,price:55,unit:'tonnes',pu:'₹/kg'},
+  'Onion':{base:8.0,price:18,unit:'tonnes',pu:'₹/kg'},
+  'Chilli':{base:1.5,price:80,unit:'tonnes',pu:'₹/kg'},
+  'Sunflower':{base:1.4,price:55,unit:'tonnes',pu:'₹/kg'},
+  'Turmeric':{base:2.5,price:85,unit:'tonnes',pu:'₹/kg'},
+  'Ginger':{base:5.0,price:40,unit:'tonnes',pu:'₹/kg'},
+  'Green Gram':{base:0.6,price:80,unit:'tonnes',pu:'₹/kg'},
+  'Black Gram':{base:0.5,price:85,unit:'tonnes',pu:'₹/kg'},
+  'Red Gram / Pigeonpea':{base:0.8,price:70,unit:'tonnes',pu:'₹/kg'},
+};
+
+function calcYield(){
+  const crop=document.getElementById('y-crop').value;
+  const acres=parseFloat(document.getElementById('y-acres').value)||2.5;
+  const cost=parseInt(document.getElementById('y-cost').value)||18000;
+  const cond=togVal('tg-cond')||'healthy';
+  const dis=togVal('tg-ydis')||'no';
+
+  const cm=cond==='poor'?.55:cond==='moderate'?.8:1.0;
+  const dm=dis==='yes'?.73:1.0;
+  const d=yDB[crop]||yDB['Paddy / Rice'];
+  const yld=(d.base*acres*cm*dm);
+  const yldStr=yld>100?Math.round(yld).toLocaleString('en-IN'):yld.toFixed(1);
+  const rev=d.unit==='nuts'?Math.round(yld*d.price):Math.round(yld*1000*d.price);
+  const profit=rev-(cost*acres);
+  const ps=profit>=0?'₹'+profit.toLocaleString('en-IN'):'-₹'+Math.abs(profit).toLocaleString('en-IN');
+
+  document.getElementById('y-yield').textContent=yldStr+' '+d.unit;
+  document.getElementById('y-price').textContent=d.price+' '+d.pu;
+  document.getElementById('y-profit').textContent=ps;
+
+  let tip='';
+  if(dis==='yes'){
+    const potential=Math.round(yld/dm*0.27*d.price*(d.unit==='nuts'?1:1000));
+    tip=`⚠️ Disease is reducing your yield by ~27% (ICAR research data). Treating the disease now could recover an estimated <strong>₹${potential.toLocaleString('en-IN')}</strong> this season.`;
+  }else if(cond==='poor'){
+    tip=`💡 Poor crop condition is the biggest yield risk. Improving nutrition and water management now — even 4 weeks before harvest — can increase yield by 10-15%.`;
+  }else{
+    tip=`✅ Your crop is in good shape! Register for PM Fasal Bima crop insurance to protect this season's income against unexpected weather damage.`;
+  }
+  document.getElementById('y-tip').innerHTML=tip;
+
+  const out=document.getElementById('yield-output');
+  out.classList.add('vis');
+  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ─── ROTATION ───
+const rotDB={
+  rice:{name:'Green Gram',icon:'🫛',profit:'₹48,000',reasons:['Adds soil nitrogen','Breaks rice pest cycle','Short duration (60 days)','Good market demand']},
+  wheat:{name:'Groundnut',icon:'🥜',profit:'₹55,000',reasons:['Restores nitrogen','Different disease profile','Summer crop fits calendar','Drought tolerant']},
+  maize:{name:'Black Gram',icon:'🫘',profit:'₹38,000',reasons:['Nitrogen fixing','Breaks fall armyworm cycle','Short duration','High protein demand']},
+  banana:{name:'Groundnut',icon:'🥜',profit:'₹52,000',reasons:['Restores soil structure','N fixation','Breaks Sigatoka cycle','Low water need']},
+  coconut:{name:'Turmeric',icon:'🌿',profit:'₹65,000',reasons:['Shade tolerant','High value crop','Soil organic matter','Antifungal properties']},
+  tomato:{name:'Onion',icon:'🧅',profit:'₹58,000',reasons:['Breaks fruit borer cycle','Soil fumigation effect','High market value','Low water need']},
+  sugarcane:{name:'Cowpea',icon:'🫘',profit:'₹38,000',reasons:['Restores exhausted soil','Nitrogen fixer','Fast return 70 days','Good fodder value']},
+  cotton:{name:'Chickpea / Bengal Gram',icon:'🌱',profit:'₹42,000',reasons:['Rabi season fit','Nitrogen fixation','Breaks bollworm cycle','Low input cost']},
+  groundnut:{name:'Paddy / Rice',icon:'🌾',profit:'₹42,000',reasons:['Benefits from residual N','Different pest profile','MSP guaranteed','Water use efficient']},
+  greengram:{name:'Paddy / Rice',icon:'🌾',profit:'₹40,000',reasons:['Different water requirement','Breaks pulse disease cycle','MSP guaranteed','Good market price']},
+  blackgram:{name:'Maize',icon:'🌽',profit:'₹45,000',reasons:['Different disease profile','Good summer crop','High yield potential','Animal feed value']},
+  pigeonpea:{name:'Wheat',icon:'🌾',profit:'₹38,000',reasons:['Benefits from residual nitrogen','Rabi season fit','MSP available','Low water need in rabi']},
+  onion:{name:'Green Gram',icon:'🫛',profit:'₹35,000',reasons:['Short duration','Breaks onion thrips cycle','Improves soil structure','Market demand is high']},
+  chilli:{name:'Sesame / Gingelly',icon:'🌿',profit:'₹40,000',reasons:['Breaks Phytophthora cycle','Drought tolerant','Low input cost','Good oil market']},
+  brinjal:{name:'Cowpea',icon:'🫘',profit:'₹32,000',reasons:['Breaks brinjal wilt cycle','Nitrogen fixing','Fast 70-day crop','Good market price']},
+  okra:{name:'Black Gram',icon:'🫘',profit:'₹36,000',reasons:['Different disease profile','N fixation','Breaks YVMV virus cycle','Short duration']},
+  sunflower:{name:'Green Gram',icon:'🫛',profit:'₹38,000',reasons:['Nitrogen fixation','Breaks sunflower head borer cycle','Short season','Minimal input cost']},
+  turmeric:{name:'Banana',icon:'🍌',profit:'₹60,000',reasons:['Different depth root system','Good income','Uses residual nutrients','Well-suited post-turmeric']},
+  ginger:{name:'Maize',icon:'🌽',profit:'₹45,000',reasons:['Breaks rhizome rot cycle','Air circulation helps','Good summer cash crop','Different nutrient demand']},
+};
+
+function planRotation(){
+  const cur=document.getElementById('r-current').value;
+  const rec=rotDB[cur]||rotDB.rice;
+  document.getElementById('rot-icon').textContent=rec.icon;
+  document.getElementById('rot-name').textContent=rec.name;
+  document.getElementById('rot-why').textContent='After '+document.getElementById('r-current').options[document.getElementById('r-current').selectedIndex].text+', this crop gives your soil the best recovery and you the best return next season.';
+  document.getElementById('rot-profit').textContent=rec.profit+' est.';
+  const tags=document.getElementById('rot-tags');
+  tags.innerHTML='';
+  rec.reasons.forEach(r=>{const s=document.createElement('span');s.className='rtag';s.textContent=r;tags.appendChild(s);});
+  const out=document.getElementById('rot-output');
+  out.classList.add('vis');
+  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ─── FARM HEALTH ───
+function calcHealth(){
+  const water=togVal('tg-hw')||'medium';
+  const pest=togVal('tg-hp')||'none';
+  const soil=togVal('tg-hs')||'soft';
+  const damage=togVal('tg-hd')||'no';
+
+  const w=water==='high'?95:water==='medium'?80:45;
+  const p=pest==='none'?95:pest==='mild'?65:30;
+  const s=soil==='soft'?90:soil==='normal'?75:40;
+  const d=damage==='no'?90:damage==='some'?65:35;
+
+  const overall=Math.round((w+p+s+d)/4);
+  const color=overall>=80?'var(--paddy)':overall>=60?'var(--amber)':'var(--danger)';
+  const status=overall>=80?'🟢 Good — Your farm is in healthy condition':overall>=60?'🟡 Moderate — Some areas need attention':'🔴 At Risk — Take action this week';
+
+  document.getElementById('h-score').textContent=overall+'/100';
+  document.getElementById('h-score').style.color=color;
+  document.getElementById('h-status').textContent=status;
+
+  setBar('h-w',w); setBar('h-p',p); setBar('h-s',s); setBar('h-c',d);
+
+  const low=Math.min(w,p,s,d);
+  let advice='';
+  if(low===w&&w<70)advice='💧 Priority: Water stress is your biggest issue right now. Irrigate immediately and use the Irrigation Planner for a proper schedule.';
+  else if(low===p&&p<70)advice='🐛 Priority: Pest activity is high. Go to Pest Control section now — the earlier you act, the less chemical you need.';
+  else if(low===s&&s<70)advice='🌱 Priority: Hard or dry soil is limiting root growth and water uptake. Apply FYM at 2 tonnes/acre and check drainage channels.';
+  else if(low===d&&d<70)advice='🌾 Priority: Visible crop damage is the biggest risk. Use Detect Disease tool to identify the cause and treat immediately.';
+  else advice='✅ Your farm is in good health this week. Keep monitoring weekly. Consider soil testing before next season to maintain these results.';
+
+  document.getElementById('h-advice').textContent=advice;
+  const out=document.getElementById('health-output');
+  out.classList.add('vis');
+  out.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function setBar(id,pct){
+  document.getElementById(id+'-pct').textContent=pct+'%';
+  const b=document.getElementById(id+'-bar');
+  b.style.width=pct+'%';
+  b.className='prog-fill'+(pct<50?' d':pct<70?' w':'');
+}
+
+// ─── SHARED ───
+function saveReport(r){
+  let rs=JSON.parse(localStorage.getItem('fs_reports')||'[]');
+  rs.push({...r,id:Date.now()});
+  localStorage.setItem('fs_reports',JSON.stringify(rs));
+  let st=JSON.parse(localStorage.getItem('fs_stats')||'{"totalFarmers":1247,"totalReports":84,"activeAlerts":2,"districts":12}');
+  st.totalReports+=1;
+  localStorage.setItem('fs_stats',JSON.stringify(st));
+}
+</script>
+</body>
+</html>
