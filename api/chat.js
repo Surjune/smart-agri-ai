@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const GROQ_KEY = "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";
+  const GROQ_KEY = process.env.GROQ_KEY;
 
   if (!GROQ_KEY) {
     return res.status(500).json({ error: 'GROQ_KEY not set in environment variables.' });
