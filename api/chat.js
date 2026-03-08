@@ -1,5 +1,15 @@
 export default async function handler(req, res) {
 
+  // ── CORS — allow browser requests from any origin ──
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Preflight check (browser sends OPTIONS before POST)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -7,23 +17,23 @@ export default async function handler(req, res) {
   const GROQ_KEY = process.env.GROQ_KEY;
 
   if (!GROQ_KEY) {
-    return res.status(500).json({ error: 'GROQ_KEY not set in environment variables.' });
+    return res.status(500).json({
+      error: 'GROQ_KEY is not set. Go to Vercel → Project → Settings → Environment Variables and add GROQ_KEY.'
+    });
   }
 
   // ── AUTO MODEL SELECTION ──
-  // Fetches the available models from Groq and picks the best one automatically.
-  // Priority: llama-3.3-70b first (best quality), then 3.1-70b, then any 70b, then any available.
-  // This means your chatbot never breaks if Groq deprecates a model.
+  // Fetches live model list from Groq and picks best available.
+  // Never breaks if Groq deprecates a model.
   async function getBestModel() {
     try {
       const r = await fetch('https://api.groq.com/openai/v1/models', {
         headers: { 'Authorization': `Bearer ${GROQ_KEY}` }
       });
-      if (!r.ok) throw new Error('models fetch failed');
+      if (!r.ok) throw new Error('models list failed');
       const data = await r.json();
       const ids = (data.data || []).map(m => m.id);
 
-      // Priority list — first match wins
       const preferred = [
         'llama-3.3-70b-versatile',
         'llama-3.3-70b-specdec',
@@ -33,13 +43,10 @@ export default async function handler(req, res) {
       for (const p of preferred) {
         if (ids.includes(p)) return p;
       }
-      // Fallback: any 70b model
-      const seventyB = ids.find(id => id.includes('70b'));
-      if (seventyB) return seventyB;
-      // Last resort: first available model
+      const fallback70b = ids.find(id => id.includes('70b'));
+      if (fallback70b) return fallback70b;
       return ids[0] || 'llama-3.3-70b-versatile';
     } catch {
-      // If model fetch fails, use known good model
       return 'llama-3.3-70b-versatile';
     }
   }
@@ -69,23 +76,10 @@ export default async function handler(req, res) {
 CRITICAL RULES:
 1. Ask ONLY ONE follow-up question at a time. Never ask two questions in one message.
 2. Collect these 5 things before giving final advice in this order:
-   → Crop name
-   → Crop age in days
-   → Exact symptom (what farmer sees)
-   → Recent weather (rain / dry / humid)
-   → Land size in acres
-3. Once you have all 5, give:
-   → Disease or problem name
-   → Exact cause in simple language
-   → Chemical name + dose in grams or ml per litre of water
-   → Total quantity needed for their exact acreage
-   → Approximate cost at local agri-input shop in rupees
-   → Brand names available in India
-   → Follow-up check date
-   → Source: ICAR or TNAU guideline name
-4. ONLY answer farming questions. Say "I can only help with farming questions" for anything else.
-5. Use simple English. No jargon.
-6. Never recommend pesticides banned in India.`
+   Crop name → Crop age in days → Exact symptom → Recent weather → Land size in acres
+3. Once you have all 5, give: disease/problem name, cause in simple language, chemical name + dose per litre, total quantity for their acreage, cost in rupees, brand names in India, follow-up date, ICAR/TNAU source.
+4. ONLY answer farming questions.
+5. Use simple English. Never recommend pesticides banned in India.`
           },
           ...messages
         ],
