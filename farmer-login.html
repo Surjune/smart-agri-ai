@@ -352,7 +352,7 @@ function doLogin() {
   const profile = JSON.parse(localStorage.getItem('fs_farmer_'+phone)||'null');
   if (!profile) { showErr('Phone number not found. Please register first as a new farmer.'); return; }
   localStorage.setItem('fs_current_farmer', JSON.stringify(profile));
-  window.location.href = 'farmer.html';
+  window.location.href = '/farmer';
 }
 
 function doRegister() {
@@ -371,7 +371,7 @@ function doRegister() {
   localStorage.setItem('fs_farmer_'+phone, JSON.stringify(profile));
   localStorage.setItem('fs_current_farmer', JSON.stringify(profile));
   seedDemoData();
-  window.location.href='farmer.html';
+  window.location.href='/farmer';
 }
 
 function seedDemoData() {
@@ -402,7 +402,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const current = localStorage.getItem('fs_current_farmer');
   if (current) {
     const p = JSON.parse(current);
-    document.getElementById('welcomeBack').innerHTML=`<div class="welcome-back">👋 Welcome back, <strong>${p.name}</strong>! <a href="farmer.html">Go to your dashboard →</a></div>`;
+    document.getElementById('welcomeBack').innerHTML=`<div class="welcome-back">👋 Welcome back, <strong>${p.name}</strong>! <a href="/farmer">Go to your dashboard →</a></div>`;
   }
 });
 </script>
